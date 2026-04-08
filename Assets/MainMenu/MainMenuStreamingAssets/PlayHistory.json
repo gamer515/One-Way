@@ -1,0 +1,34 @@
+{
+  "allRounds": [
+    {
+      "roundNumber": 1,
+      "playDate": "2026-04-01",
+      "logs": [
+        {
+          "selectionId": 101,
+          "question": "Would you give bread to a hungry child?",
+          "playerAnswer": "pro",
+          "statChanges": "sincerity+10, conscience+20"
+        },
+        {
+          "selectionId": 102,
+          "question": "Would you steal the wallet of a wealthy merchant?",
+          "playerAnswer": "oppose",
+          "statChanges": "conscience+5, greed-10"
+        }
+      ]
+    },
+    {
+      "roundNumber": 2,
+      "playDate": "2026-04-02",
+      "logs": [
+        {
+          "selectionId": 201,
+          "question": "Do you want to learn forbidden magic?",
+          "playerAnswer": "pro",
+          "statChanges": "ignorance-20, greed+30"
+        }
+      ]
+    }
+  ]
+}
