@@ -33,6 +33,7 @@ public class BiographyController : CancelPanelController
         foreach (Transform child in roundContent) Destroy(child.gameObject);
 
         string path = Path.Combine(Application.dataPath, "MainMenu","MainMenuStreamingAssets", "PlayHistory.json");
+        //string path = System.IO.Path.Combine(Application.persistentDataPath, "PlayHistory.json");
 
         // 파일 존재 여부 확인 (방어적 코드)
         if (!File.Exists(path))
