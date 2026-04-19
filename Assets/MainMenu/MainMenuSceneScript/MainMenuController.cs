@@ -99,7 +99,8 @@ public class MainMenuController : MonoBehaviour
         yield return StartCoroutine(PlayBurstEffect());
 
         // 5. ¾À ÀüÈ¯
-        UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenuTestGameScene");
+        //UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenuTestGameScene");
+        UnityEngine.SceneManagement.SceneManager.LoadScene("DecisionScene");
     }
 
     private IEnumerator PlayBurstEffect()
