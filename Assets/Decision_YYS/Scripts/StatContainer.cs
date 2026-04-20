@@ -11,18 +11,15 @@ public class StatContainer : MonoBehaviour
 
     private void Start()
     {
-        for(int i = 0; i < stats.Length; i++)
-        {
-            stats[i] = 0; // 초기 스탯 값 설정
-            UpdateStatText(i); // UI 텍스트 초기화
-        }
+        UpdateSInnitioaltatText();
     }
 
-    private void UpdateStatText(int index)
+    private void UpdateSInnitioaltatText()
     {
-        if (index >= 0 && index < stat_Texts.Length)
+        for (int i = 0; i < stats.Length; i++)
         {
-            stat_Texts[index].text = stats[index].ToString();
+            stats[i] = 0; // 초기 스탯 값 설정
+            stat_Texts[i].text = stats[i].ToString();
         }
     }
 

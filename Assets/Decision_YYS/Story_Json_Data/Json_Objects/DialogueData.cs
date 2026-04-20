@@ -8,4 +8,6 @@ public class DialogueData
     public string type;
     public string[] options;
     public int[] Figure;
+    public bool isTransition;
+    public string backgroundName;
 }
