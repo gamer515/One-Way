@@ -32,7 +32,7 @@ public class MainMenuController : MonoBehaviour
         yield return StartCoroutine(PlayBurstEffect());
 
         // ¾À ÀüÈ¯
-        SceneManager.LoadScene("MainMenuTestGameScene");
+        SceneManager.LoadScene("DecisionScene");
     }
 
     private IEnumerator PlayBurstEffect()
