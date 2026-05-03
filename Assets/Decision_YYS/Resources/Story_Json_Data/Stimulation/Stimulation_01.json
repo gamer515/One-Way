@@ -1,81 +1,12 @@
 {
-  "Chapter": 0,
-  "Story": [
+  "MainStory": [
     {
       "id": 0,
-      "text": "눈을 뜨자마자 발끝에서 돌멩이가 떨어지는 소리가 들립니다. 밑바닥조차 보이지 않는 깊은 심연입니다.",
-      "type": "Next",
-      "isTransition": false,
-      "backgroundName": "Backgrounds/TempBackground"
-    },
-    {
-      "id": 1,
-      "text": "양옆을 보지 마세요. 당신이 서 있는 이곳은 폭 1미터도 되지 않는 좁디좁은 외길입니다.",
-      "type": "Next",
-      "isTransition": false,
-      "backgroundName": "none"
-    },
-    {
-      "id": 2,
-      "text": "오직 앞과 뒤, 두 방향뿐입니다. 하지만 뒤에서 불어오는 바람은 당신의 등을 밀며 돌아가지 말라고 속삭입니다.",
-      "type": "Next",
-      "isTransition": false,
-      "backgroundName": "none"
-    },
-    {
-      "id": 3,
-      "text": "정신을 차려보니 당신의 손에는 낡은 나침반 하나가 쥐어져 있습니다. 무엇을 먼저 확인하겠습니까?",
-      "type": "Choice",
-      "options": [ "낭떠러지 확인", "나침반의 방향", "나의 몸 상태", "나의 발 상태" ],
-      "Figure": [ 5, 2, 2, 5 ],
-      "isTransition": true,
-      "backgroundName": "#FFFF00"
-    },
-    {
-      "id": 4,
-      "text": "확인은 끝났습니다. 이곳에서 살아남는 유일한 방법은 당신의 의지로 한 걸음을 내딛는 것뿐입니다.",
+      "text": "자극적인 냄새가 납니다.",
       "type": "Next",
       "isTransition": true,
-      "backgroundName": "Backgrounds/TempBackground"
-    },
-    {
-      "id": 5,
-      "text": "첫 걸음을 떼려는데, 저 앞에서 정체 모를 목소리가 들려옵니다. '너는 왜 이곳에 왔지?'",
-      "type": "Choice",
-      "options": [ "죽기 위해서", "살기 위해서", "기억이 나지 않아", "뭐야?" ],
-      "Figure": [ 5, 2, 2, 5 ],
-      "isTransition": true,
-      "backgroundName": "#00FF00"
-    },
-    {
-      "id": 6,
-      "text": "목소리는 대답 대신 비웃음 섞인 바람을 보냅니다. 몸이 휘청거리지만, 다시 중심을 잡습니다.",
-      "type": "Next",
-      "isTransition": true,
-      "backgroundName": "Backgrounds/TempBackground"
-    },
-    {
-      "id": 7,
-      "text": "이곳에 '옆'이란 없습니다. 조금이라도 한눈을 팔면 저 아래 낭떠러지가 당신을 집어삼킬 겁니다.",
-      "type": "Next",
-      "isTransition": false,
-      "backgroundName": "none"
-    },
-    {
-      "id": 8,
-      "text": "이제 게임을 시작하죠. 당신의 모든 선택은 이 외길 위에서의 생존으로 직결됩니다. 준비되셨습니까?",
-      "type": "Choice",
-      "options": [ "꺼져", "안갈건데?", "준비됐다", "무섭지만 가겠다" ],
-      "Figure": [ 5, 2, 2, 5 ],
-      "isTransition": false,
-      "backgroundName": "none"
-    },
-    {
-      "id": 9,
-      "text": "좋습니다. 안개가 걷히고 희미한 길이 보이기 시작합니다. 앞으로 직진하십시오.",
-      "type": "End",
-      "isTransition": false,
-      "backgroundName": "none"
+      "backgroundName": "#FFFF44"
     }
-  ]
+  ],
+  "SideStory": []
 }

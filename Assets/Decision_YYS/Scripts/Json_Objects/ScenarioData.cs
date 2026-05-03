@@ -4,7 +4,8 @@ using System.Collections.Generic;
 [Serializable]
 public class ScenarioData
 {
-    public List<Dialogue> Story;
+    public List<Dialogue> MainStory;
+    public List<Dialogue> SideStory;
 }
 
 [Serializable]

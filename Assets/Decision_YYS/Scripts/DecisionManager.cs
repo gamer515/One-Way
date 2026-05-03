@@ -78,21 +78,49 @@ public class DecisionManager : MonoBehaviour
 
     private void DisplayCurrentStory()
     {
-        if (scenarioData == null || scenarioData.Story == null || scenarioData.Story.Count == 0) return;
+        if (scenarioData == null || scenarioData.MainStory == null || scenarioData.MainStory.Count == 0) return;
 
-        var currentStory = scenarioData.Story[story_Index];
+        var currentStory = scenarioData.MainStory[story_Index];
         front_Dialogue_Text.text = currentStory.text;
+
+        // 배경 설정 적용
+        ApplyBackground(cardFront, currentStory.backgroundName);
 
         currentState = GameState.ShowingStory;
         option_Text.gameObject.SetActive(false);
     }
 
+    private void ApplyBackground(RectTransform card, string bgData)
+    {
+        if (string.IsNullOrEmpty(bgData) || bgData.ToLower() == "none") return;
+
+        Image dgImg = card.GetComponent<Image>();
+        if (dgImg == null) return;
+
+        Color customColor;
+        if (ColorUtility.TryParseHtmlString(bgData, out customColor))
+        {
+            dgImg.sprite = null;
+            dgImg.color = customColor;
+        }
+        else
+        {
+            Sprite loadedSprite = Resources.Load<Sprite>(bgData);
+            if (loadedSprite != null)
+            {
+                dgImg.sprite = loadedSprite;
+                dgImg.color = Color.white;
+            }
+        }
+    }
+
+
     public void OnScreenClicked()
     {
-        if (currentState == GameState.Transitioning || scenarioData == null || scenarioData.Story == null) return;
-        if (story_Index < 0 || story_Index >= scenarioData.Story.Count) return;
+        if (currentState == GameState.Transitioning || scenarioData == null || scenarioData.MainStory == null) return;
+        if (story_Index < 0 || story_Index >= scenarioData.MainStory.Count) return;
 
-        var currentStory = scenarioData.Story[story_Index];
+        var currentStory = scenarioData.MainStory[story_Index];
 
         if (currentState == GameState.ShowingStory)
         {
@@ -113,9 +141,9 @@ public class DecisionManager : MonoBehaviour
     public void ConfirmChoice(int gear)
     {
         if (currentState != GameState.WaitingForChoice || scenarioData == null) return;
-        if (story_Index < 0 || story_Index >= scenarioData.Story.Count) return;
+        if (story_Index < 0 || story_Index >= scenarioData.MainStory.Count) return;
 
-        var currentStory = scenarioData.Story[story_Index];
+        var currentStory = scenarioData.MainStory[story_Index];
         int optionIndex = GetOptionIndexFromGear(gear);
         
         if (optionIndex >= 0 && optionIndex < currentStory.Figure.Length)
@@ -132,9 +160,9 @@ public class DecisionManager : MonoBehaviour
     private void ProceedToNextStory()
     {
         story_Index++;  
-        if (scenarioData != null && scenarioData.Story != null && story_Index < scenarioData.Story.Count)
+        if (scenarioData != null && scenarioData.MainStory != null && story_Index < scenarioData.MainStory.Count)
         {
-            var nextStory = scenarioData.Story[story_Index];
+            var nextStory = scenarioData.MainStory[story_Index];
             option_Text.gameObject.SetActive(false);
 
             if (nextStory.isTransition)
@@ -159,13 +187,13 @@ public class DecisionManager : MonoBehaviour
 
     public void ShowOptionText(int gear)
     {
-        if (scenarioData == null || scenarioData.Story == null || story_Index < 0 || story_Index >= scenarioData.Story.Count) return;
-        if (scenarioData.Story[story_Index].type != "Choice") return;
+        if (scenarioData == null || scenarioData.MainStory == null || story_Index < 0 || story_Index >= scenarioData.MainStory.Count) return;
+        if (scenarioData.MainStory[story_Index].type != "Choice") return;
 
         int index = GetOptionIndexFromGear(gear);
-        if (index >= 0 && index < scenarioData.Story[story_Index].options.Length)
+        if (index >= 0 && index < scenarioData.MainStory[story_Index].options.Length)
         {
-            option_Text.text = scenarioData.Story[story_Index].options[index];
+            option_Text.text = scenarioData.MainStory[story_Index].options[index];
         }
     }
 

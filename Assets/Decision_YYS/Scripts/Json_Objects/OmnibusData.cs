@@ -5,7 +5,6 @@ using System.Collections.Generic;
 public class OmnibusData
 {
     public List<MainStoryInfo> MainStories;
-    public List<SideStoryInfo> SideStories;
 }
 
 [Serializable]
