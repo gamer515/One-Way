@@ -1,0 +1,33 @@
+{
+  "MainStories": [
+    {
+      "Chapter": "Initial",
+      "Title": [ "Initial_01" ]
+    },
+    {
+      "Chapter": "Stimulation",
+      "Title": [ "Stimulation_01" ]
+    },
+    {
+      "Chapter": "Knowledge",
+      "Title": ["Knowledge_01"]
+    },
+    {
+      "Chapter": "Labor",
+      "Title": ["Labor_01"]
+    },
+    {
+      "Chapter": "Future",
+      "Title": ["Future_01"]
+    },
+    {
+      "Chapter": "Money",
+      "Title": ["Money_01"]
+    }
+  ],
+  "SideStories": [
+    {
+      "Title": []
+    }
+  ]
+}

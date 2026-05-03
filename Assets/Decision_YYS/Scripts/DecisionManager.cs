@@ -23,6 +23,10 @@ public class DecisionManager : MonoBehaviour
     private IJsonSerializer jsonManager;
     ScenarioData scenarioData;
 
+    private OmnibusData currentOmnibus;
+    private int currentChapterIndex = 0;
+    private int currentEpisodeIndex = 0;
+
     private void Awake()
     {
         currentState = GameState.ShowingStory;
@@ -31,20 +35,51 @@ public class DecisionManager : MonoBehaviour
     private void Start()
     {
         jsonManager = new JsonManager();
-        scenarioData = jsonManager.LoadData<ScenarioData>("TempStory");
+        // 이 부분은 추후에 n 회차일 경우 Omnibus_02, Omnibus_03 등으로 변경할 지 말지는 선택.
+        currentOmnibus = jsonManager.LoadData<OmnibusData>("Omnibus_01");
 
-        if(scenarioData.Chapter == (int)chapter.자극)
+        LoadNextStory();
+    }
+
+    private void LoadNextStory()
+    {
+        if (currentOmnibus == null || currentOmnibus.MainStories == null || currentChapterIndex >= currentOmnibus.MainStories.Count)
         {
-            front_Dialogue_Text.text = scenarioData.Story[0].text;
-            back_Dialogue_Text.text = "";
+            Debug.Log("모든 메인 스토리가 종료되었습니다.");
+            return;
+        }
 
-            option_Text.gameObject.SetActive(false);
-            Debug.Log($"Text 확인: {front_Dialogue_Text.text}");
+        var mainStory = currentOmnibus.MainStories[currentChapterIndex];
+
+        if (currentEpisodeIndex >= mainStory.Title.Count)
+        {
+            currentChapterIndex++;
+            currentEpisodeIndex = 0;
+            LoadNextStory();
+            return;
+        }
+
+        string folder = mainStory.Chapter;
+        string file = mainStory.Title[currentEpisodeIndex];
+        string fullPath = $"{folder}/{file}";
+
+        scenarioData = jsonManager.LoadData<ScenarioData>(fullPath);
+        
+        if (scenarioData != null)
+        {
+            story_Index = 0;
+            DisplayCurrentStory();
+        }
+        else
+        {
+            Debug.LogError($"스토리를 불러올 수 없습니다: {fullPath}");
         }
     }
 
     private void DisplayCurrentStory()
     {
+        if (scenarioData == null || scenarioData.Story == null || scenarioData.Story.Count == 0) return;
+
         var currentStory = scenarioData.Story[story_Index];
         front_Dialogue_Text.text = currentStory.text;
 
@@ -54,7 +89,8 @@ public class DecisionManager : MonoBehaviour
 
     public void OnScreenClicked()
     {
-        if (currentState == GameState.Transitioning) return;
+        if (currentState == GameState.Transitioning || scenarioData == null || scenarioData.Story == null) return;
+        if (story_Index < 0 || story_Index >= scenarioData.Story.Count) return;
 
         var currentStory = scenarioData.Story[story_Index];
 
@@ -76,7 +112,8 @@ public class DecisionManager : MonoBehaviour
 
     public void ConfirmChoice(int gear)
     {
-        if (currentState != GameState.WaitingForChoice) return;
+        if (currentState != GameState.WaitingForChoice || scenarioData == null) return;
+        if (story_Index < 0 || story_Index >= scenarioData.Story.Count) return;
 
         var currentStory = scenarioData.Story[story_Index];
         int optionIndex = GetOptionIndexFromGear(gear);
@@ -95,7 +132,7 @@ public class DecisionManager : MonoBehaviour
     private void ProceedToNextStory()
     {
         story_Index++;  
-        if (story_Index < scenarioData.Story.Count)
+        if (scenarioData != null && scenarioData.Story != null && story_Index < scenarioData.Story.Count)
         {
             var nextStory = scenarioData.Story[story_Index];
             option_Text.gameObject.SetActive(false);
@@ -114,13 +151,15 @@ public class DecisionManager : MonoBehaviour
         }
         else
         {
-            Debug.Log("스토리의 끝에 도달했습니다.");
+            // 현재 에피소드가 끝났으므로 다음 스토리 로드
+            currentEpisodeIndex++;
+            LoadNextStory();
         }
     }
 
     public void ShowOptionText(int gear)
     {
-        if(story_Index >= scenarioData.Story.Count) return;
+        if (scenarioData == null || scenarioData.Story == null || story_Index < 0 || story_Index >= scenarioData.Story.Count) return;
         if (scenarioData.Story[story_Index].type != "Choice") return;
 
         int index = GetOptionIndexFromGear(gear);
@@ -132,14 +171,14 @@ public class DecisionManager : MonoBehaviour
 
     private int GetOptionIndexFromGear(int gear)
     {
-        if (gear == (int)Constants.gear.악찬) return 0;
-        if (gear == (int)Constants.gear.악반) return 1;
-        if (gear == (int)Constants.gear.선찬) return 2;
-        if (gear == (int)Constants.gear.선반) return 3;
+        if (gear == (int)Constants.gear.EvilGood) return 0;
+        if (gear == (int)Constants.gear.EvilBad) return 1;
+        if (gear == (int)Constants.gear.GoodGood) return 2;
+        if (gear == (int)Constants.gear.GoodBad) return 3;
         return -1;
     }
 
-    private IEnumerator SwipeTransition(DialogueData nextStory)
+    private IEnumerator SwipeTransition(Dialogue nextStory)
     {
         back_Dialogue_Text.text = nextStory.text;
         string bgData = nextStory.backgroundName;

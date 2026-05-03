@@ -7,32 +7,67 @@ public class JoystickLikeGear : MonoBehaviour
     [SerializeField] private RectTransform joystick_Button;
     [SerializeField] private RectTransform pivot;
 
+    [Header("3D Object References")]
+    [SerializeField] private Transform gear3D;
+    [Tooltip("기어가 최대로 기울어질 각도 (단위: 도)")]
+    [SerializeField] private float maxTiltAngle = 30f;
+    [SerializeField] private Camera mainCamera;
+
+    [Header("Interaction Area Settings (Screen)")]
+    [Tooltip("체크하면 아래 지정된 화면 영역을 기준으로 동작합니다.")]
+    [SerializeField] private bool useScreenArea = true;
+    [Tooltip("기준 해상도(1920x1080) 기준 인식 영역의 좌하단 시작점 (1440, 0 권장)")]
+    [SerializeField] private Vector2 origin = new Vector2(1440f, 0f); 
+    [Tooltip("마우스 인식 영역 크기 (480, 270 권장)")]
+    [SerializeField] private Vector2 areaSize = new Vector2(480f, 270f);
+    [Tooltip("기준 해상도")]
+    [SerializeField] private Vector2 referenceResolution = new Vector2(1920f, 1080f);
+
+    [Header("Debug")]
+    [Tooltip("체크하면 Scene 뷰와 Game 뷰에 마우스 인식 영역이 빨간색 선으로 표시됩니다.")]
+    [SerializeField] private bool showDebugArea = true;
+
     [Header("Follow Settings")]
-    // 마우스 감지 범위
-    [SerializeField] private float detectionRange = 300f; 
     [SerializeField] private float horizontalRange = 200f;
     [SerializeField] private float verticalRange = 150f;
-    // 수직 슬롯 진입 허용폭
     [SerializeField] private float slotWidth = 60f;
-    // 따라오는 속도
     [SerializeField] private float smoothTime = 0.08f;     
 
     [SerializeField] DecisionManager decisionManager;
 
     private Vector2 targetPosition;
     private Vector2 currentVelocity;
-    // 현재 버튼이 위치한 슬롯 (0: 중립, 1~4: 기어)
     private int currentGearSlot = 0; 
+
+    // 3D 기어의 초기 회전값 저장
+    private Quaternion gear3DOriginRot;
+
+    private void Start()
+    {
+        if (mainCamera == null) mainCamera = Camera.main;
+        if (gear3D != null)
+        {
+            // 시작할 때의 로컬 회전 상태를 저장해둡니다.
+            gear3DOriginRot = gear3D.localRotation;
+        }
+    }
 
     private void Update()
     {
         if (joystick_Button == null || pivot == null) return;
 
-        // 클릭 감지 로직 추가
-        HandleSelectionClick();
-        // 클릭과 동시에 stat과 선택지가 선택이 되는 듯함.
+        HandleSelectionInput();
         CheckGearState();
         HandleMouseProximity();
+    }
+
+    private void LateUpdate()
+    {
+        if (gear3D != null)
+        {
+            // 매 프레임 UI 위치에 맞춰 3D 기어의 회전값을 업데이트합니다.
+            Update3DGearRotation();
+        }
     }
 
     private void FixedUpdate()
@@ -40,44 +75,94 @@ public class JoystickLikeGear : MonoBehaviour
         MoveGearSmoothly();
     }
 
+    // 현재 화면 비율에 맞춰 조정된 실제 인식 영역(Rect)을 계산합니다.
+    private Rect GetScaledInteractionRect()
+    {
+        float scaleX = (float)Screen.width / referenceResolution.x;
+        float scaleY = (float)Screen.height / referenceResolution.y;
+
+        return new Rect(
+            origin.x * scaleX,
+            origin.y * scaleY,
+            areaSize.x * scaleX,
+            areaSize.y * scaleY
+        );
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!useScreenArea || !showDebugArea) return;
+
+        Camera cam = mainCamera != null ? mainCamera : Camera.main;
+        if (cam == null) return;
+
+        Rect scaledRect = GetScaledInteractionRect();
+        float distance = 1f; 
+
+        Vector3 bottomLeft = cam.ScreenToWorldPoint(new Vector3(scaledRect.xMin, scaledRect.yMin, distance));
+        Vector3 topLeft = cam.ScreenToWorldPoint(new Vector3(scaledRect.xMin, scaledRect.yMax, distance));
+        Vector3 topRight = cam.ScreenToWorldPoint(new Vector3(scaledRect.xMax, scaledRect.yMax, distance));
+        Vector3 bottomRight = cam.ScreenToWorldPoint(new Vector3(scaledRect.xMax, scaledRect.yMin, distance));
+
+        Gizmos.color = new Color(1f, 0f, 0f, 0.8f);
+        Gizmos.DrawLine(bottomLeft, topLeft);
+        Gizmos.DrawLine(topLeft, topRight);
+        Gizmos.DrawLine(topRight, bottomRight);
+        Gizmos.DrawLine(bottomRight, bottomLeft);
+        
+        Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+        Gizmos.DrawLine(bottomLeft, topRight);
+        Gizmos.DrawLine(topLeft, bottomRight);
+    }
+
+    private bool IsMouseValid(out Rect scaledRect)
+    {
+        scaledRect = GetScaledInteractionRect();
+        if (useScreenArea)
+        {
+           return scaledRect.Contains(Input.mousePosition);
+        }
+        return false;
+    }
+
     private void HandleMouseProximity()
     {
-        Vector2 localMousePos;
-        // 화면 좌표를 피벗의 로컬 좌표로 변환.
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(pivot, Input.mousePosition, null, out localMousePos);
-
-        // 벡터의 크기로 마우스가 감지 범위 내에 있는지 판단.
-        float distance = localMousePos.magnitude;
-
-        // 상하좌우 슬롯 범위 내에서 마우스 위치에 따라 버튼이 따라오도록 설정.
-        if (distance < detectionRange)
+        Rect scaledRect;
+        if (!IsMouseValid(out scaledRect))
         {
-            float tx = Mathf.Clamp(localMousePos.x, -horizontalRange, horizontalRange);
-            float ty = 0;
+            targetPosition = Vector2.zero;
+            return;
+        }
 
-            float edgeThreshold = horizontalRange - slotWidth;
-            
-            if (Mathf.Abs(tx) > edgeThreshold)
-            {
-                ty = Mathf.Clamp(localMousePos.y, -verticalRange, verticalRange);
-                
-                // 마우스가 슬롯 깊숙이 있으면 수평 위치를 끝단으로 고정
-                if (Mathf.Abs(ty) > verticalRange * 0.4f)
-                {
-                    tx = (tx > 0) ? horizontalRange : -horizontalRange;
-                }
-            }
-            else
-            {
-                ty = 0;
-            }
+        // [핵심] 인식 영역의 중심으로부터 마우스가 얼마나 떨어져 있는지 계산 (상대 좌표 조작)
+        Vector2 areaCenterScreen = scaledRect.center;
+        Vector2 mouseDelta = (Vector2)Input.mousePosition - areaCenterScreen;
 
-            targetPosition = new Vector2(tx, ty);
+        // 화면 픽셀 단위를 UI 단위로 환산
+        float uiScaleX = referenceResolution.x / Screen.width;
+        float uiScaleY = referenceResolution.y / Screen.height;
+        Vector2 uiDelta = new Vector2(mouseDelta.x * uiScaleX, mouseDelta.y * uiScaleY);
+
+        // 조이스틱 이동 한계치 내로 제한 및 기어 슬롯 로직 적용
+        float tx = Mathf.Clamp(uiDelta.x, -horizontalRange, horizontalRange);
+        float ty = 0;
+
+        float edgeThreshold = horizontalRange - slotWidth;
+        
+        if (Mathf.Abs(tx) > edgeThreshold)
+        {
+            ty = Mathf.Clamp(uiDelta.y, -verticalRange, verticalRange);
+            if (Mathf.Abs(ty) > verticalRange * 0.4f)
+            {
+                tx = (tx > 0) ? horizontalRange : -horizontalRange;
+            }
         }
         else
         {
-            targetPosition = Vector2.zero;
+            ty = 0;
         }
+
+        targetPosition = new Vector2(tx, ty);
     }
 
     private void MoveGearSmoothly()
@@ -90,14 +175,25 @@ public class JoystickLikeGear : MonoBehaviour
         );
     }
 
-    // 특정 방향으로 선택 및 클릭 전 기어 슬롯에 들어가 있는지 판정하는 함수.
+    private void Update3DGearRotation()
+    {
+        // UI 조이스틱 위치 비율(-1 ~ 1) 계산
+        float xRatio = joystick_Button.anchoredPosition.x / horizontalRange;
+        float yRatio = joystick_Button.anchoredPosition.y / verticalRange;
+
+        // [수정] 좌우 회전 방향 반전: 마우스 이동 방향과 기어 기울기 방향을 일치시킵니다.
+        float rotX = yRatio * maxTiltAngle; 
+        float rotZ = -xRatio * maxTiltAngle; 
+
+        // 초기 회전값에 계산된 회전 오프셋을 쿼터니언 곱셈으로 적용
+        gear3D.localRotation = gear3DOriginRot * Quaternion.Euler(rotX, 0, rotZ);
+    }
+
     private void CheckGearState()
     {
-        // 빠르게 누르면 gear가 0으로 인식하는 경우가 있음.
         int gear = 0;
         Vector2 pos = joystick_Button.anchoredPosition;
 
-        // 판정 범위 완화: 슬롯 끝단 근처(약 75% 이상 도달 시)로 판정하여 조작감 개선
         float xThreshold = horizontalRange * 0.75f;
         float yThreshold = verticalRange * 0.75f;
 
@@ -116,34 +212,18 @@ public class JoystickLikeGear : MonoBehaviour
         }
     }
 
-    private void HandleSelectionClick()
+    private void HandleSelectionInput()
     {
-        // 마우스 왼쪽 버튼을 눌렀을 때
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             if (currentGearSlot != 0)
             {
-                // 1. 기어 슬롯(1~4)에 들어간 상태라면 -> 선택 확정!
-                OnGearSelected(currentGearSlot);
+                decisionManager.ConfirmChoice(currentGearSlot);
             }
             else
             {
-                // 2. 기어가 중립(0) 상태라면 -> 평상시 이야기 진행!
                 decisionManager.OnScreenClicked();
             }
         }
-    }
-
-    private void OnGearSelected(int gear)
-    {
-        // 최종 결정 시 실행될 로직
-        Debug.Log($"<color=cyan><b>Final Decision: Gear {gear} Selected!</b></color>");
-        
-        // 선택 확정 처리 (스탯 반영 및 스토리 진행)
-        decisionManager.ConfirmChoice(gear); 
-        
-        // 버튼 리셋
-        joystick_Button.anchoredPosition = Vector2.zero; 
-        targetPosition = Vector2.zero; // 부드러운 이동 목표도 초기화
     }
 }
