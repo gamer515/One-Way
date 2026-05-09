@@ -2581,6 +2581,7 @@ MonoBehaviour:
   - {fileID: 1895136502}
   - {fileID: 63952723}
   stats: 00000000000000000000000000000000
+  targetStatThreshold: 10
 --- !u!1 &1880279074
 GameObject:
   m_ObjectHideFlags: 0

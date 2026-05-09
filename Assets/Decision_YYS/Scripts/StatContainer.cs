@@ -1,26 +1,23 @@
 using TMPro;
 using UnityEngine;
+using System;
 
-// MonoBehaviour¿Ã æ∆¥— ¿œπ› ≈¨∑°Ω∫∑Œ ªÁøÎ.
 public class StatContainer : MonoBehaviour
 {
     [Header("Stats")]
-    [SerializeField] private TextMeshProUGUI[] stat_Texts; // UI ≈ÿΩ∫∆Æ πËø≠
+    [SerializeField] private TextMeshProUGUI[] stat_Texts;
 
     public int[] stats = new int[4];
 
+    [Header("Transition Settings")]
+    [SerializeField] private int targetStatThreshold = 10;
+    public event Action OnTargetStatReached;
+
     private void Start()
     {
-        UpdateSInnitioaltatText();
-    }
-
-    private void UpdateSInnitioaltatText()
-    {
-        for (int i = 0; i < stats.Length; i++)
-        {
-            stats[i] = 0; // √ ±‚ Ω∫≈» ∞™ º≥¡§
-            stat_Texts[i].text = stats[i].ToString();
-        }
+        // Îã®ÏàúÌûà ÌòÑÏû¨ stats Î∞∞Ïó¥Ïùò Í∞íÏùÑ UIÏóê Î∞òÏòÅÌï©ÎãàÎã§.
+        // Ï†ÄÏû•Îêú Îç∞Ïù¥ÌÑ∞Í∞Ä ÏûàÎã§Î©¥ Í∑∏ Í∞íÏù¥ Ïú†ÏßÄÎê©ÎãàÎã§.
+        RefreshAllUI();
     }
 
     public void UpdateStat(int index)
@@ -28,6 +25,20 @@ public class StatContainer : MonoBehaviour
         if (index >= 0 && index < stats.Length)
         {
             stat_Texts[index].text = stats[index].ToString();
+
+            // Î™©Ìëú ÏàòÏπò ÎèÑÎã¨ Ïó¨Î∂Ä Ï≤¥ÌÅ¨
+            if (stats[index] >= targetStatThreshold)
+            {
+                OnTargetStatReached?.Invoke();
+            }
+        }
+    }
+
+    public void RefreshAllUI()
+    {
+        for (int i = 0; i < stats.Length; i++)
+        {
+            stat_Texts[i].text = stats[i].ToString();
         }
     }
 }

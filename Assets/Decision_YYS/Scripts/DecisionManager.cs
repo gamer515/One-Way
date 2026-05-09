@@ -27,9 +27,63 @@ public class DecisionManager : MonoBehaviour
     private int currentChapterIndex = 0;
     private int currentEpisodeIndex = 0;
 
+    [SerializeField] private JoystickLikeGear gearController;
+
+    private ISaveSystem saveManager;
+
     private void Awake()
     {
         currentState = GameState.ShowingStory;
+        saveManager = new SaveManager();
+    }
+
+    private void OnEnable()
+    {
+        if (statContainer != null)
+        {
+            statContainer.OnTargetStatReached += HandleTargetStatReached;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (statContainer != null)
+        {
+            statContainer.OnTargetStatReached -= HandleTargetStatReached;
+        }
+    }
+
+    private void HandleTargetStatReached()
+    {
+        // Initial 챕터(인덱스 0)일 때는 무시합니다.
+        if (currentChapterIndex == 0) return;
+
+        Debug.Log("전투 씬 진입 (2초간 시뮬레이션)");
+        currentState = GameState.Transitioning;
+        StartCoroutine(SimulateCombatAndResume());
+    }
+
+    private IEnumerator SimulateCombatAndResume()
+    {
+        // 2초 동안 대기 (전투 씬 시뮬레이션)
+        yield return new WaitForSeconds(2.0f);
+
+        Debug.Log("전투 종료! 현재 에피소드를 중단하고 다음 챕터로 즉시 이동합니다.");
+
+        // 현재 진행 중인 에피소드를 강제로 종료하고 다음 챕터로 인덱스 변경
+        if (currentOmnibus != null && currentChapterIndex < currentOmnibus.MainStories.Count - 1)
+        {
+            currentChapterIndex++;
+            currentEpisodeIndex = 0; // 다음 챕터의 첫 번째 에피소드부터 시작
+            story_Index = 0;
+
+            AutoSaveProgress();
+            LoadNextStory();
+        }
+        else
+        {
+            Debug.Log("더 이상 진행할 다음 챕터가 없습니다.");
+        }
     }
 
     private void Start()
@@ -38,7 +92,57 @@ public class DecisionManager : MonoBehaviour
         // 이 부분은 추후에 n 회차일 경우 Omnibus_02, Omnibus_03 등으로 변경할 지 말지는 선택.
         currentOmnibus = jsonManager.LoadData<OmnibusData>("Omnibus_01");
 
+        LoadGame();
+    }
+
+    private void LoadGame()
+    {
+        // 1. 스탯 복구
+        if (saveManager.Exists("Stats"))
+        {
+            var savedStats = saveManager.Load<PlayerStats>("Stats");
+            if (savedStats != null && savedStats.stats != null)
+            {
+                statContainer.stats = savedStats.stats;
+                statContainer.RefreshAllUI();
+            }
+        }
+
+        // 2. 진행도 복구
+        if (saveManager.Exists("Progress"))
+        {
+            var progress = saveManager.Load<GameProgress>("Progress");
+            if (progress != null)
+            {
+                currentChapterIndex = progress.chapterIndex;
+                currentEpisodeIndex = progress.episodeIndex;
+                story_Index = progress.storyIndex;
+
+                Debug.Log($"[Load] 저장된 지점에서 재시작: Chapter {currentChapterIndex}, Episode {currentEpisodeIndex}, Story {story_Index}");
+            }
+        }
+
         LoadNextStory();
+    }
+
+    private void AutoSaveProgress()
+    {
+        GameProgress progress = new GameProgress
+        {
+            chapterIndex = currentChapterIndex,
+            episodeIndex = currentEpisodeIndex,
+            storyIndex = story_Index
+        };
+        saveManager.Save("Progress", progress);
+    }
+
+    private void AutoSaveStats()
+    {
+        PlayerStats stats = new PlayerStats
+        {
+            stats = statContainer.stats
+        };
+        saveManager.Save("Stats", stats);
     }
 
     private void LoadNextStory()
@@ -67,7 +171,7 @@ public class DecisionManager : MonoBehaviour
         
         if (scenarioData != null)
         {
-            story_Index = 0;
+            if (story_Index >= scenarioData.MainStory.Count) story_Index = 0;
             DisplayCurrentStory();
         }
         else
@@ -84,10 +188,28 @@ public class DecisionManager : MonoBehaviour
         front_Dialogue_Text.text = currentStory.text;
 
         // 배경 설정 적용
-        ApplyBackground(cardFront, currentStory.backgroundName);
+        ApplyBackground(cardFront, currentStory.background);
 
-        currentState = GameState.ShowingStory;
-        option_Text.gameObject.SetActive(false);
+        if (currentStory.type == "Choice")
+        {
+            currentState = GameState.WaitingForChoice;
+            option_Text.gameObject.SetActive(true);
+
+            // [수정] 기어가 이미 꺾여 있다면 즉시 해당 지문 표시
+            if (gearController != null && gearController.CurrentGear != 0)
+            {
+                ShowOptionText(gearController.CurrentGear);
+            }
+            else
+            {
+                option_Text.text = "선택지를 선택하세요.";
+            }
+        }
+        else
+        {
+            currentState = GameState.ShowingStory;
+            option_Text.gameObject.SetActive(false);
+        }
     }
 
     private void ApplyBackground(RectTransform card, string bgData)
@@ -140,21 +262,36 @@ public class DecisionManager : MonoBehaviour
 
     public void ConfirmChoice(int gear)
     {
+        if (currentState == GameState.ShowingStory)
+        {
+            OnScreenClicked();
+            return;
+        }
+
         if (currentState != GameState.WaitingForChoice || scenarioData == null) return;
         if (story_Index < 0 || story_Index >= scenarioData.MainStory.Count) return;
 
         var currentStory = scenarioData.MainStory[story_Index];
         int optionIndex = GetOptionIndexFromGear(gear);
         
-        if (optionIndex >= 0 && optionIndex < currentStory.Figure.Length)
+        if (optionIndex >= 0 && optionIndex < currentStory.figure.Length)
         {
-            statContainer.stats[optionIndex] += currentStory.Figure[optionIndex];
-            statContainer.UpdateStat(optionIndex);
+            // Initial 챕터(인덱스 0)가 아닐 때만 스탯을 증가시킵니다.
+            if (currentChapterIndex > 0)
+            {
+                statContainer.stats[optionIndex] += currentStory.figure[optionIndex];
+                statContainer.UpdateStat(optionIndex);
+                
+                AutoSaveStats();
+            }
 
-            Debug.Log($"[{currentStory.options[optionIndex]}] 선택됨! 스탯 변경 적용.");
+            Debug.Log($"[{currentStory.option[optionIndex]}] 선택됨!");
         }
 
-        ProceedToNextStory();
+        if (currentState != GameState.Transitioning)
+        {
+            ProceedToNextStory();
+        }
     }
 
     private void ProceedToNextStory()
@@ -163,24 +300,26 @@ public class DecisionManager : MonoBehaviour
         if (scenarioData != null && scenarioData.MainStory != null && story_Index < scenarioData.MainStory.Count)
         {
             var nextStory = scenarioData.MainStory[story_Index];
-            option_Text.gameObject.SetActive(false);
 
             if (nextStory.isTransition)
             {
+                option_Text.gameObject.SetActive(false);
                 currentState = GameState.Transitioning;
                 StartCoroutine(SwipeTransition(nextStory));
             }
             else
             {
-                front_Dialogue_Text.text = nextStory.text;
-                back_Dialogue_Text.text = "";
-                currentState = GameState.ShowingStory;
+                DisplayCurrentStory();
             }
+
+            AutoSaveProgress();
         }
         else
         {
             // 현재 에피소드가 끝났으므로 다음 스토리 로드
             currentEpisodeIndex++;
+            story_Index = 0;
+            AutoSaveProgress();
             LoadNextStory();
         }
     }
@@ -190,10 +329,17 @@ public class DecisionManager : MonoBehaviour
         if (scenarioData == null || scenarioData.MainStory == null || story_Index < 0 || story_Index >= scenarioData.MainStory.Count) return;
         if (scenarioData.MainStory[story_Index].type != "Choice") return;
 
-        int index = GetOptionIndexFromGear(gear);
-        if (index >= 0 && index < scenarioData.MainStory[story_Index].options.Length)
+        // [추가] 기어가 중앙(0)이면 안내 문구로 복구
+        if (gear == 0)
         {
-            option_Text.text = scenarioData.MainStory[story_Index].options[index];
+            option_Text.text = "선택지를 선택하세요.";
+            return;
+        }
+
+        int index = GetOptionIndexFromGear(gear);
+        if (index >= 0 && index < scenarioData.MainStory[story_Index].option.Length)
+        {
+            option_Text.text = scenarioData.MainStory[story_Index].option[index];
         }
     }
 
@@ -209,7 +355,7 @@ public class DecisionManager : MonoBehaviour
     private IEnumerator SwipeTransition(Dialogue nextStory)
     {
         back_Dialogue_Text.text = nextStory.text;
-        string bgData = nextStory.backgroundName;
+        string bgData = nextStory.background;
 
         if (!string.IsNullOrEmpty(bgData) && bgData.ToLower() != "none")
         {
@@ -266,6 +412,6 @@ public class DecisionManager : MonoBehaviour
         cardFront.anchoredPosition = startPos;
         cardFront.localRotation = startRot;
 
-        currentState = GameState.ShowingStory;
+        DisplayCurrentStory();
     }
 }

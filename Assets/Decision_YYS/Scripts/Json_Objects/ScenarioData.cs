@@ -12,10 +12,13 @@ public class ScenarioData
 public class Dialogue
 {
     public int id;
-    public string text;
+    public string change;
     public string type;
-    public string[] options;
-    public int[] Figure;
     public bool isTransition;
-    public string backgroundName;
+    public string background; // backgroundName -> background
+    public string character;
+    public string text;
+    public string[] option; // options -> option
+    public string npcEmotion;
+    public int[] figure; // Figure -> figure
 }

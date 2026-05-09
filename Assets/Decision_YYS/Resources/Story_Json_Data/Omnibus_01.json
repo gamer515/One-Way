@@ -5,24 +5,12 @@
       "Title": [ "Initial_01" ]
     },
     {
-      "Chapter": "Stimulation",
-      "Title": [ "Stimulation_01" ]
+      "Chapter": "MartialArts",
+      "Title": [ "MartialArts_01" ]
     },
     {
-      "Chapter": "Knowledge",
-      "Title": ["Knowledge_01"]
-    },
-    {
-      "Chapter": "Labor",
-      "Title": ["Labor_01"]
-    },
-    {
-      "Chapter": "Future",
-      "Title": ["Future_01"]
-    },
-    {
-      "Chapter": "Money",
-      "Title": ["Money_01"]
+      "Chapter": "Wisdom",
+      "Title": [ "Wisdom_01" ]
     }
   ]
 }

@@ -39,6 +39,8 @@ public class JoystickLikeGear : MonoBehaviour
     private Vector2 currentVelocity;
     private int currentGearSlot = 0; 
 
+    public int CurrentGear => currentGearSlot;
+
     // 3D 기어의 초기 회전값 저장
     private Quaternion gear3DOriginRot;
 
@@ -205,10 +207,7 @@ public class JoystickLikeGear : MonoBehaviour
         if (gear != currentGearSlot)
         {
             currentGearSlot = gear;
-            if (gear != 0)
-            {
-                decisionManager.ShowOptionText(gear);
-            }
+            decisionManager.ShowOptionText(gear);
         }
     }
 
