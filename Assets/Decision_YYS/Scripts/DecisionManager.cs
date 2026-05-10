@@ -3,6 +3,7 @@ using TMPro;
 using static Constants;
 using System.Collections;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 public enum GameState { ShowingStory, WaitingForChoice, Transitioning }
 
@@ -27,14 +28,18 @@ public class DecisionManager : MonoBehaviour
     private int currentChapterIndex = 0;
     private int currentEpisodeIndex = 0;
 
-    [SerializeField] private JoystickLikeGear gearController;
+    // [추가] 현재 챕터에서 플레이어가 읽은 모든 지문 기록
+    private List<Dialogue> playedHistory = new List<Dialogue>();
 
-    private ISaveSystem saveManager;
+    [SerializeField] private JoystickLikeGear gearController;
+    [SerializeField] private StoryRelayManager relayManager;
+
+    private SaveDataManager saveDataManager;
 
     private void Awake()
     {
         currentState = GameState.ShowingStory;
-        saveManager = new SaveManager();
+        saveDataManager = new SaveDataManager(new SaveManager());
     }
 
     private void OnEnable()
@@ -59,6 +64,13 @@ public class DecisionManager : MonoBehaviour
         if (currentChapterIndex == 0) return;
 
         Debug.Log("전투 씬 진입 (2초간 시뮬레이션)");
+
+        // [추가] 중간 전환 데이터 전송 (change가 true인 것들만)
+        if (relayManager != null)
+        {
+            relayManager.RelayMidChapter(playedHistory, statContainer.stats, currentChapterIndex);
+        }
+
         currentState = GameState.Transitioning;
         StartCoroutine(SimulateCombatAndResume());
     }
@@ -77,7 +89,7 @@ public class DecisionManager : MonoBehaviour
             currentEpisodeIndex = 0; // 다음 챕터의 첫 번째 에피소드부터 시작
             story_Index = 0;
 
-            AutoSaveProgress();
+            saveDataManager.SaveProgress(currentChapterIndex, currentEpisodeIndex, story_Index);
             LoadNextStory();
         }
         else
@@ -98,51 +110,69 @@ public class DecisionManager : MonoBehaviour
     private void LoadGame()
     {
         // 1. 스탯 복구
-        if (saveManager.Exists("Stats"))
+        var savedStats = saveDataManager.LoadStats();
+        if (savedStats != null && savedStats.stats != null)
         {
-            var savedStats = saveManager.Load<PlayerStats>("Stats");
-            if (savedStats != null && savedStats.stats != null)
-            {
-                statContainer.stats = savedStats.stats;
-                statContainer.RefreshAllUI();
-            }
+            statContainer.stats = savedStats.stats;
+            statContainer.RefreshAllUI();
         }
 
         // 2. 진행도 복구
-        if (saveManager.Exists("Progress"))
+        var progress = saveDataManager.LoadProgress();
+        if (progress != null)
         {
-            var progress = saveManager.Load<GameProgress>("Progress");
-            if (progress != null)
-            {
-                currentChapterIndex = progress.chapterIndex;
-                currentEpisodeIndex = progress.episodeIndex;
-                story_Index = progress.storyIndex;
+            currentChapterIndex = progress.chapterIndex;
+            currentEpisodeIndex = progress.episodeIndex;
+            story_Index = progress.storyIndex;
 
-                Debug.Log($"[Load] 저장된 지점에서 재시작: Chapter {currentChapterIndex}, Episode {currentEpisodeIndex}, Story {story_Index}");
-            }
+            Debug.Log($"[Load] 저장된 지점에서 재시작: Chapter {currentChapterIndex}, Episode {currentEpisodeIndex}, Story {story_Index}");
         }
 
         LoadNextStory();
     }
 
-    private void AutoSaveProgress()
+    private void MoveToNextChapter()
     {
-        GameProgress progress = new GameProgress
+        // 1. 현재 챕터 결과 기록
+        int bestStatIndex = 0;
+        int maxValue = -1;
+        for (int i = 0; i < statContainer.stats.Length; i++)
         {
-            chapterIndex = currentChapterIndex,
-            episodeIndex = currentEpisodeIndex,
-            storyIndex = story_Index
-        };
-        saveManager.Save("Progress", progress);
-    }
+            if (statContainer.stats[i] > maxValue)
+            {
+                maxValue = statContainer.stats[i];
+                bestStatIndex = i;
+            }
+        }
 
-    private void AutoSaveStats()
-    {
-        PlayerStats stats = new PlayerStats
+        saveDataManager.RecordChapterResult(currentChapterIndex, bestStatIndex, maxValue);
+
+        // [추가] 챕터 종료 데이터 전송 (전체 히스토리)
+        if (relayManager != null)
         {
-            stats = statContainer.stats
-        };
-        saveManager.Save("Stats", stats);
+            relayManager.RelayChapterEnd(playedHistory, statContainer.stats, currentChapterIndex);
+        }
+
+        // 2. 다음 챕터로 인덱스 변경
+        currentChapterIndex++;
+        currentEpisodeIndex = 0;
+        story_Index = 0;
+
+        // [추가] 챕터가 바뀌었으므로 플레이 기록 초기화
+        playedHistory.Clear();
+
+        // 3. 스탯 초기화
+        for (int i = 0; i < statContainer.stats.Length; i++)
+        {
+            statContainer.stats[i] = 0;
+        }
+        statContainer.RefreshAllUI();
+
+        // 4. 저장 및 다음 스토리 로드
+        saveDataManager.SaveProgress(currentChapterIndex, currentEpisodeIndex, story_Index);
+        saveDataManager.SaveStats(statContainer.stats);
+
+        LoadNextStory();
     }
 
     private void LoadNextStory()
@@ -157,9 +187,7 @@ public class DecisionManager : MonoBehaviour
 
         if (currentEpisodeIndex >= mainStory.Title.Count)
         {
-            currentChapterIndex++;
-            currentEpisodeIndex = 0;
-            LoadNextStory();
+            MoveToNextChapter();
             return;
         }
 
@@ -187,28 +215,41 @@ public class DecisionManager : MonoBehaviour
         var currentStory = scenarioData.MainStory[story_Index];
         front_Dialogue_Text.text = currentStory.text;
 
+        // [추가] 플레이어가 읽은 지문을 기록 리스트에 추가 (중복 방지: 이미 마지막 항목과 같으면 패스)
+        if (playedHistory.Count == 0 || playedHistory[playedHistory.Count - 1] != currentStory)
+        {
+            playedHistory.Add(currentStory);
+        }
+
         // 배경 설정 적용
         ApplyBackground(cardFront, currentStory.background);
 
         if (currentStory.type == "Choice")
         {
-            currentState = GameState.WaitingForChoice;
-            option_Text.gameObject.SetActive(true);
-
-            // [수정] 기어가 이미 꺾여 있다면 즉시 해당 지문 표시
-            if (gearController != null && gearController.CurrentGear != 0)
-            {
-                ShowOptionText(gearController.CurrentGear);
-            }
-            else
-            {
-                option_Text.text = "선택지를 선택하세요.";
-            }
+            EnterChoiceState();
         }
         else
         {
             currentState = GameState.ShowingStory;
             option_Text.gameObject.SetActive(false);
+        }
+    }
+
+    private void EnterChoiceState()
+    {
+        currentState = GameState.WaitingForChoice;
+        option_Text.gameObject.SetActive(true);
+
+        // [수정] 캐시된 CurrentGear 대신 직접 현재 물리적 위치를 확인하여 즉시 반영
+        int currentGear = (gearController != null) ? gearController.GetCurrentGearDirectly() : 0;
+
+        if (currentGear != 0)
+        {
+            ShowOptionText(currentGear);
+        }
+        else
+        {
+            option_Text.text = "선택지를 선택하세요.";
         }
     }
 
@@ -248,10 +289,7 @@ public class DecisionManager : MonoBehaviour
         {
             if (currentStory.type == "Choice")
             {
-                currentState = GameState.WaitingForChoice;
-                option_Text.gameObject.SetActive(true);
-
-                option_Text.text = "선택지를 선택하세요.";
+                EnterChoiceState();
             }
             else
             {
@@ -282,7 +320,7 @@ public class DecisionManager : MonoBehaviour
                 statContainer.stats[optionIndex] += currentStory.figure[optionIndex];
                 statContainer.UpdateStat(optionIndex);
                 
-                AutoSaveStats();
+                saveDataManager.SaveStats(statContainer.stats);
             }
 
             Debug.Log($"[{currentStory.option[optionIndex]}] 선택됨!");
@@ -312,14 +350,14 @@ public class DecisionManager : MonoBehaviour
                 DisplayCurrentStory();
             }
 
-            AutoSaveProgress();
+            saveDataManager.SaveProgress(currentChapterIndex, currentEpisodeIndex, story_Index);
         }
         else
         {
             // 현재 에피소드가 끝났으므로 다음 스토리 로드
             currentEpisodeIndex++;
             story_Index = 0;
-            AutoSaveProgress();
+            saveDataManager.SaveProgress(currentChapterIndex, currentEpisodeIndex, story_Index);
             LoadNextStory();
         }
     }

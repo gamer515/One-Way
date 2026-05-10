@@ -41,6 +41,22 @@ public class JoystickLikeGear : MonoBehaviour
 
     public int CurrentGear => currentGearSlot;
 
+    public int GetCurrentGearDirectly()
+    {
+        int gear = 0;
+        Vector2 pos = joystick_Button.anchoredPosition;
+
+        float xThreshold = horizontalRange * 0.75f;
+        float yThreshold = verticalRange * 0.75f;
+
+        if (pos.x < -xThreshold && pos.y > yThreshold) gear = 1;
+        else if (pos.x < -xThreshold && pos.y < -yThreshold) gear = 2;
+        else if (pos.x > xThreshold && pos.y > yThreshold) gear = 3;
+        else if (pos.x > xThreshold && pos.y < -yThreshold) gear = 4;
+
+        return gear;
+    }
+
     // 3D 기어의 초기 회전값 저장
     private Quaternion gear3DOriginRot;
 
