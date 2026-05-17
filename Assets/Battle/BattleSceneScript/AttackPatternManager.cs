@@ -14,7 +14,7 @@ public class AttackPatternManager : MonoBehaviour
     public GameObject bulletC_Prefab; // 바닥 가시
 
     // 적의 턴이 시작되면 랜덤하게 3개의 패턴을 실행
-    public void StartEnemyTurn()
+    public void StartEnemyTurnSequence()
     {
         StartCoroutine(RunThreePatternsSequence());
     }
@@ -30,6 +30,15 @@ public class AttackPatternManager : MonoBehaviour
             int selectedPattern = patternPool[randIndex];
             patternPool.RemoveAt(randIndex);
 
+            // 핵심: 첫 번째 순서(i == 0)이고, 4번 패턴(가시)이 아닐 때만 중앙으로 강제 이동!
+            if (i == 0 && selectedPattern != 4)
+            {
+                player.transform.position = new Vector2(0f, -4f); // 상자 정중앙
+                Rigidbody2D pRb = player.GetComponent<Rigidbody2D>();
+                if (pRb != null) pRb.linearVelocity = Vector2.zero;
+            }
+
+            // 패턴 실행
             yield return StartCoroutine(ExecutePattern(selectedPattern));
 
             // 패턴과 패턴 사이 1초 대기
@@ -44,108 +53,150 @@ public class AttackPatternManager : MonoBehaviour
     {
         switch (patternID)
         {
-            case 1: // 좌, 하, 우, 상 순서로 6발씩 동시 발사
-                boxController.ChangeBox(new Vector2(8f, 8f), Vector2.zero, 0.5f);
+            case 1: // 4방향 동시 발사 (새로운 중심점 기준)
+                Vector2 boxCenter1 = new Vector2(0f, -4f); // 현재 박스의 중심
+                boxController.ChangeBox(new Vector2(8f, 8f), boxCenter1, 0.5f);
                 player.SetMovementMode(PlayerController.MovementMode.Free);
                 yield return new WaitForSeconds(0.5f);
 
-                float offset = 1.2f; // 탄알 사이의 간격
+                float offset = 1.2f;
 
-                // 1. 왼쪽에서 6개 동시 생성
+                // 1. 왼쪽에서 생성 (Y좌표를 boxCenter 기준 보정)
                 for (int i = 0; i < 6; i++)
                 {
-                    Vector2 pos = new Vector2(boxController.leftWall.position.x - 1f, 3f - (offset * i));
+                    Vector2 pos = new Vector2(boxController.leftWall.position.x - 1f, boxCenter1.y + 3f - (offset * i));
                     Instantiate(bulletA_Prefab, pos, Quaternion.identity);
                 }
                 yield return new WaitForSeconds(2f);
 
-                // 2. 아래에서 6개 동시 생성
+                // 2. 아래에서 생성 (X좌표를 boxCenter 기준 보정)
                 for (int i = 0; i < 6; i++)
                 {
-                    Vector2 pos = new Vector2(-3f + (offset * i), boxController.bottomWall.position.y - 1f);
+                    Vector2 pos = new Vector2(boxCenter1.x - 3f + (offset * i), boxController.bottomWall.position.y - 1f);
                     Instantiate(bulletA_Prefab, pos, Quaternion.identity);
                 }
                 yield return new WaitForSeconds(2f);
 
-                // 3. 오른쪽에서 6개 동시 생성
+                // 3. 오른쪽에서 생성
                 for (int i = 0; i < 6; i++)
                 {
-                    Vector2 pos = new Vector2(boxController.rightWall.position.x + 1f, 3f - (offset * i));
+                    Vector2 pos = new Vector2(boxController.rightWall.position.x + 1f, boxCenter1.y + 3f - (offset * i));
                     Instantiate(bulletA_Prefab, pos, Quaternion.identity);
                 }
                 yield return new WaitForSeconds(2f);
 
-                // 4. 위에서 6개 동시 생성
+                // 4. 위에서 생성
                 for (int i = 0; i < 6; i++)
                 {
-                    Vector2 pos = new Vector2(-3f + (offset * i), boxController.topWall.position.y + 1f);
+                    Vector2 pos = new Vector2(boxCenter1.x - 3f + (offset * i), boxController.topWall.position.y + 1f);
                     Instantiate(bulletA_Prefab, pos, Quaternion.identity);
                 }
                 yield return new WaitForSeconds(2f);
                 break;
 
-            case 2: // 1시 방향부터 반시계 레이저 24개 (중심 조준)
-                boxController.ChangeBox(new Vector2(8f, 8f), Vector2.zero, 0.5f);
+            case 2: // 반시계 레이저 (새로운 중심점 조준)
+                Vector2 boxCenter2 = new Vector2(0f, -4f);
+                boxController.ChangeBox(new Vector2(8f, 8f), boxCenter2, 0.5f);
                 player.SetMovementMode(PlayerController.MovementMode.Free);
                 yield return new WaitForSeconds(0.5f);
 
-                float angle = 60f; // 1시 방향 시작
+                float angle = 60f;
                 for (int i = 0; i < 24; i++)
                 {
-                    // 1. 레이저가 생성될 위치 계산 (반시계로 이동)
-                    Vector2 spawnPos = GetPosOnCircle(Vector2.zero, 6f, angle);
+                    // 1. Vector2.zero 대신 boxCenter2를 기준으로 원형 좌표 계산
+                    Vector2 spawnPos = GetPosOnCircle(boxCenter2, 6f, angle);
 
-                    // 2. 중심(0,0)을 향하는 방향 벡터 계산
-                    Vector2 dirToCenter = Vector2.zero - spawnPos;
+                    // 2. Vector2.zero 대신 boxCenter2를 바라보도록 방향 벡터 계산
+                    Vector2 dirToCenter = boxCenter2 - spawnPos;
 
-                    // 3. 방향 벡터를 회전 각도(Z축)로 변환
                     float rotZ = Mathf.Atan2(dirToCenter.y, dirToCenter.x) * Mathf.Rad2Deg;
-
-                    // 4. 중심을 바라보는 각도로 레이저 생성
                     Instantiate(bulletB_Prefab, spawnPos, Quaternion.Euler(0, 0, rotZ));
 
-                    // 위치는 15도씩 반시계 방향으로 다음 위치로 이동
                     angle += 15f;
                     yield return new WaitForSeconds(0.1f);
                 }
                 yield return new WaitForSeconds(3f);
                 break;
 
-            case 3: // 좌우 상단 레이저 동시 발사 (중심 조준)
-                boxController.ChangeBox(new Vector2(8f, 8f), Vector2.zero, 0.5f);
+            case 3: // 양방향 동시 레이저 (새로운 중심점 기준)
+                Vector2 boxCenter3 = new Vector2(0f, -4f);
+                boxController.ChangeBox(new Vector2(8f, 8f), boxCenter3, 0.5f);
                 player.SetMovementMode(PlayerController.MovementMode.Free);
                 yield return new WaitForSeconds(0.5f);
 
-                // 왼쪽 상단(-5, 5)에서 중심(0,0)을 바라보는 각도는 -45도 입니다.
-                Instantiate(bulletB_Prefab, new Vector2(-5f, 5f), Quaternion.Euler(0, 0, -45f));
+                // 중심점에서 좌측 상단/우측 상단으로 오프셋을 더해 위치를 잡습니다.
+                Vector2 leftPos = boxCenter3 + new Vector2(-5f, 5f);
+                Vector2 rightPos = boxCenter3 + new Vector2(5f, 5f);
 
-                // 오른쪽 상단(5, 5)에서 중심(0,0)을 바라보는 각도는 -135도 입니다.
-                // (왼쪽 레이저와 정확히 대칭으로 중심을 향해 발사됩니다)
-                Instantiate(bulletB_Prefab, new Vector2(5f, 5f), Quaternion.Euler(0, 0, -135f));
+                Instantiate(bulletB_Prefab, leftPos, Quaternion.Euler(0, 0, -45f));
+                Instantiate(bulletB_Prefab, rightPos, Quaternion.Euler(0, 0, -135f));
 
                 yield return new WaitForSeconds(2f);
                 break;
 
-            case 4: // 가로로 긴 상자 & 8개 묶음 가시 1회 발사
-                boxController.ChangeBox(new Vector2(16f, 4f), new Vector2(0, -2f), 0.5f);
-                player.SetMovementMode(PlayerController.MovementMode.Gravity);
-                yield return new WaitForSeconds(0.5f); // 상자가 변할 때까지 대기
+            case 4: // 가로로 긴 상자 & 부드러운 일직선 이동 & 8개 묶음 가시
+                // 1. 상자 크기 조절 시작
+                boxController.ChangeBox(new Vector2(16f, 4f), new Vector2(0, -4f), 0.5f);
+                yield return new WaitForSeconds(0.5f); // 상자가 다 변할 때까지 대기
 
-                int spikeCount = 8;        // 가시 8개
-                float spikeSpacing = 0.8f; // 가시 사이 간격
+                // 2. 플레이어 강제 이동 시작 (조작 잠금)
+                player.isControlLocked = true; // 컨트롤 끄기
 
-                float startX = boxController.rightWall.position.x + 1f;
-                float startY = boxController.bottomWall.position.y + 0.5f;
+                Rigidbody2D pRb = player.GetComponent<Rigidbody2D>();
+                pRb.linearVelocity = Vector2.zero; // 가던 힘 없애기
+                pRb.gravityScale = 0f; // 이동 중에 바닥으로 떨어지지 않게 중력 잠깐 무시
 
-                // 무한루프(while) 제거! 딱 1번만 8개를 동시에 생성합니다.
-                for (int i = 0; i < spikeCount; i++)
+                Vector2 startPos = player.transform.position; // 현재 위치
+                Vector2 targetPos = new Vector2(boxController.leftWall.position.x + 1.5f, boxController.bottomWall.position.y + 0.8f); // 목표 위치 (왼쪽 아래)
+
+                float moveDuration = 0.4f; // 0.4초 동안 슉! 하고 이동
+                float elapsed = 0f;
+
+                // 목표 위치로 부드럽게 당기기
+                while (elapsed < moveDuration)
                 {
-                    Vector2 spawnPos = new Vector2(startX + (i * spikeSpacing), startY);
-                    Instantiate(bulletC_Prefab, spawnPos, Quaternion.identity);
+                    elapsed += Time.deltaTime;
+                    // Vector2.Lerp로 시작점과 끝점을 시간에 따라 부드럽게 이어줍니다.
+                    player.transform.position = Vector2.Lerp(startPos, targetPos, elapsed / moveDuration);
+                    yield return null; // 다음 프레임까지 대기
                 }
 
-                // 가시가 왼쪽으로 다 지나갈 시간(약 1.5초 ~ 2초)만 기다리고 패턴을 끝냅니다.
-                yield return new WaitForSeconds(2f);
+                player.transform.position = targetPos; // 오차 없이 최종 위치에 딱 맞춤
+
+                // 3. 이동 완료! 다시 중력 모드 켜고 조작 잠금 해제
+                player.SetMovementMode(PlayerController.MovementMode.Gravity);
+                player.isControlLocked = false;
+
+                yield return new WaitForSeconds(0.2f); // 가시 나오기 전 잠깐의 눈치 게임 시간
+
+                // 4. 가시 순차적 출현 (업데이트됨)
+                int spikeCount = 8;
+
+                // 시작점: 오른쪽 벽 위치로 고정
+                float startX = boxController.rightWall.position.x;
+                float startY = boxController.bottomWall.position.y + 0.5f;
+
+                GameObject lastSpike = null;
+
+                for (int i = 0; i < spikeCount; i++)
+                {
+                    // X좌표 이동 계산 삭제: 항상 같은 자리(startX)에서 생성됩니다.
+                    Vector2 spawnPos = new Vector2(startX, startY);
+
+                    // 가시 생성 및 마지막 가시 갱신
+                    lastSpike = Instantiate(bulletC_Prefab, spawnPos, Quaternion.identity);
+
+                    // 0.05초 간격으로 빠르게 연속 생성
+                    yield return new WaitForSeconds(0.05f);
+                }
+
+                // 8개가 모두 생성된 이후, 
+                // 마지막 가시(lastSpike)가 왼쪽 벽에 닿아 사라질 때까지 무한 대기
+                while (lastSpike != null)
+                {
+                    yield return null;
+                }
+
                 break;
         }
 

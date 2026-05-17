@@ -84,4 +84,12 @@ public class TypewriterEffect : MonoBehaviour
 
     // 타이핑이 완전히 끝났는지 확인하는 프로퍼티 (다른 매니저에서 체크용)
     public bool IsTyping => isTyping;
+
+    public void ClearText()
+    {
+        if (textComponent != null)
+        {
+            textComponent.text = "";
+        }
+    }
 }

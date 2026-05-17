@@ -29,6 +29,15 @@ public partial class BattleSceneBattleBoxController : MonoBehaviour
         textToSay = text;
         if (resizeCoroutine != null) StopCoroutine(resizeCoroutine);
 
+        // 대화창 텍스트를 활성화
+        if (dialogueContent != null) dialogueContent.SetActive(true);
+
+        // 게이지 UI가 켜져 있다면 꺼줌
+        if (gaugeUI != null) gaugeUI.SetActive(false);
+
+        // 추가: 캔버스가 켜지자마자 예전 글자를 즉시 비워줍니다!
+        if (typewriter != null) typewriter.ClearText();
+
         // 1. 상자 크기 조절 시작
         resizeCoroutine = StartCoroutine(AnimateBox(dialogueSize, dialoguePos, duration));
 
@@ -105,5 +114,21 @@ public partial class BattleSceneBattleBoxController : MonoBehaviour
         if (dialogueContent != null) dialogueContent.SetActive(false);
 
         resizeCoroutine = StartCoroutine(AnimateBox(targetSize, targetPos, duration));
+    }
+
+    [Header("Gauge Configurations")]
+    public Vector2 gaugeSize = new Vector2(14f, 3f); // 게이지용 상자 크기
+    public Vector2 gaugePos = new Vector2(0f, -2.5f); // 게이지용 상자 위치
+    public GameObject gaugeUI; // 위에 만든 GaugeUI 오브젝트 연결
+
+    public void SetGaugeMode(float duration = 0.3f)
+    {
+        if (resizeCoroutine != null) StopCoroutine(resizeCoroutine);
+
+        // 대화창 끄고 게이지 UI 켜기
+        if (dialogueContent != null) dialogueContent.SetActive(false);
+        if (gaugeUI != null) gaugeUI.SetActive(true); // 여기서 시각적 UI를 켭니다!
+
+        resizeCoroutine = StartCoroutine(AnimateBox(gaugeSize, gaugePos, duration));
     }
 }

@@ -16,4 +16,14 @@ public class BulletC_Spike : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+       
+        // 주의: 하이어라키에 있는 왼쪽 벽의 이름과 정확히 똑같이 적어주세요! (예: LeftWall)
+        if (collision.gameObject.name == "LeftWall")
+        {
+            Destroy(gameObject);
+        }
+    }
 }

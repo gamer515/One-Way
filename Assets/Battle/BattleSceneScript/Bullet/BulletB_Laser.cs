@@ -9,7 +9,7 @@ public class BulletB_Laser : MonoBehaviour
     {
         laserBeamVisual.SetActive(false);
         // 생성 후 0.2초 대기
-        yield return new WaitForSeconds(0.2f);
+        yield return new WaitForSeconds(0.5f);
 
         // 레이저 발사 (하얀색 칠하기 & 콜라이더 켜기)
         laserBeamVisual.SetActive(true);
