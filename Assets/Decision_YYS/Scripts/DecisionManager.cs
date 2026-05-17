@@ -46,6 +46,12 @@ public class DecisionManager : MonoBehaviour
     [SerializeField] private JoystickLikeGear gearController;
     [SerializeField] private StoryRelayManager relayManager;
 
+    [Header("Player Movement")]
+    [SerializeField] private GameObject playerPrefab;
+    private Player playerInstance;
+    private float[] chapterStartZs = { 23f, 27f, 35f };
+    private float[] chapterLengths = { 4f, 8f, 8f };
+
     // 추후에 전투 씬도 추가한 후에는, 전투 씬과 관련된 데이터 관리 및 저장 기능도 별도의 클래스로 구분하는 것을 권장.
     private SaveDataManager saveDataManager;
 
@@ -53,6 +59,48 @@ public class DecisionManager : MonoBehaviour
     {
         currentState = GameState.ShowingStory;
         saveDataManager = new SaveDataManager(new SaveManager());
+    }
+
+    private void SpawnPlayer()
+    {
+        if (playerInstance == null && playerPrefab != null)
+        {
+            GameObject go = Instantiate(playerPrefab);
+            playerInstance = go.GetComponent<Player>();
+            
+            // 현재 진행도에 맞는 위치 계산하여 그 자리에서 생성
+            float currentZ = CalculateTargetZ();
+            playerInstance.Initialize(new Vector3(-55f, 0.35f, currentZ));
+        }
+    }
+
+    private float CalculateTargetZ()
+    {
+        if (currentOmnibus == null || scenarioData == null || chapterIndex >= chapterStartZs.Length) 
+            return 23f;
+
+        // 현재 챕터의 전체 에피소드 수
+        int totalEpisodes = currentOmnibus.MainStories[chapterIndex].Title.Count;
+        if (totalEpisodes <= 0) totalEpisodes = 1;
+
+        // 현재 에피소드의 전체 스토리(지문) 수
+        int totalStories = (scenarioData.MainStory != null && scenarioData.MainStory.Count > 0) ? scenarioData.MainStory.Count : 1;
+
+        // 챕터 내 진행도 계산 (0.0 ~ 1.0)
+        float episodeProgress = (float)episodeIndex / totalEpisodes;
+        float storyProgressInEpisode = ((float)storyIndex / totalStories) / totalEpisodes;
+        float totalChapterProgress = episodeProgress + storyProgressInEpisode;
+
+        // 목표 Z 계산
+        return chapterStartZs[chapterIndex] + (totalChapterProgress * chapterLengths[chapterIndex]);
+    }
+
+    private void UpdatePlayerPosition()
+    {
+        if (playerInstance == null) return;
+        
+        float targetZ = CalculateTargetZ();
+        playerInstance.SetTargetZ(targetZ);
     }
 
     private void OnEnable()
@@ -127,6 +175,7 @@ public class DecisionManager : MonoBehaviour
         currentOmnibus = jsonManager.LoadData<OmnibusData>("Omnibus_01");
 
         LoadGame();
+        SpawnPlayer();
     }
 
     private void LoadGame()
@@ -219,6 +268,7 @@ public class DecisionManager : MonoBehaviour
         {
             if (storyIndex >= scenarioData.MainStory.Count) storyIndex = 0;
             DisplayCurrentStory();
+            UpdatePlayerPosition();
         }
         else
         {
@@ -231,7 +281,7 @@ public class DecisionManager : MonoBehaviour
         if (scenarioData == null || scenarioData.MainStory == null || scenarioData.MainStory.Count == 0) return;
 
         var currentStory = scenarioData.MainStory[storyIndex];
-        front_Dialogue_Text.text = currentStory.text;
+        front_Dialogue_Text.text = SanitizeText(currentStory.text);
 
         // [추가] 플레이어가 읽은 지문을 기록 리스트에 추가 (중복 방지: 이미 마지막 항목과 같으면 패스)
         if (playedHistory.Count == 0 || playedHistory[playedHistory.Count - 1] != currentStory)
@@ -251,6 +301,8 @@ public class DecisionManager : MonoBehaviour
             currentState = GameState.ShowingStory;
             option_Text.gameObject.SetActive(false);
         }
+
+        UpdatePlayerPosition();
     }
 
     private void EnterChoiceState()
@@ -409,7 +461,7 @@ public class DecisionManager : MonoBehaviour
 
     private IEnumerator SwipeTransition(Dialogue nextStory)
     {
-        back_Dialogue_Text.text = nextStory.text;
+        back_Dialogue_Text.text = SanitizeText(nextStory.text);
         string bgData = nextStory.background;
 
         if (!string.IsNullOrEmpty(bgData) && bgData.ToLower() != "none")
@@ -453,7 +505,7 @@ public class DecisionManager : MonoBehaviour
             yield return null;
         }
 
-        front_Dialogue_Text.text = nextStory.text;
+        front_Dialogue_Text.text = SanitizeText(nextStory.text);
 
         Image frontImg = cardFront.GetComponent<Image>();
         Image backImg = cardBack.GetComponent<Image>();
@@ -468,5 +520,11 @@ public class DecisionManager : MonoBehaviour
         cardFront.localRotation = startRot;
 
         DisplayCurrentStory();
+    }
+
+    private string SanitizeText(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+        return input.Replace("{", "").Replace("}", "");
     }
 }
