@@ -2,7 +2,7 @@
   "MainStory": [
     {
       "id": 0,
-      "change": "none",
+      "change": "true",
       "type": "Next",
       "isTransition": false,
       "background": "#E3F2FD",
@@ -14,7 +14,7 @@
     },
     {
       "id": 1,
-      "change": "none",
+      "change": "true",
       "type": "Choice",
       "isTransition": true,
       "background": "#E1F5FE",
@@ -26,7 +26,7 @@
     },
     {
       "id": 2,
-      "change": "none",
+      "change": "true",
       "type": "Next",
       "isTransition": false,
       "background": "#B3E5FC",
@@ -38,7 +38,7 @@
     },
     {
       "id": 3,
-      "change": "none",
+      "change": "true",
       "type": "Choice",
       "isTransition": true,
       "background": "#81D4FA",
@@ -50,7 +50,7 @@
     },
     {
       "id": 4,
-      "change": "none",
+      "change": "true",
       "type": "End",
       "isTransition": false,
       "background": "#4FC3F7",
@@ -60,6 +60,5 @@
       "npcEmotion": "none",
       "figure": [0]
     }
-  ],
-  "SideStory": []
+  ]
 }

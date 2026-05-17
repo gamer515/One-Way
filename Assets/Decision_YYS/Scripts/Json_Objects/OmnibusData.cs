@@ -14,8 +14,8 @@ public class MainStoryInfo
     public List<string> Title;
 }
 
-[Serializable]
-public class SideStoryInfo
-{
-    public List<string> Title;
-}
+//[Serializable]
+//public class SideStoryInfo
+//{
+//    public List<string> Title;
+//}

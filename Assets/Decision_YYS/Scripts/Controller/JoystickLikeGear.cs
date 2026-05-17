@@ -229,7 +229,10 @@ public class JoystickLikeGear : MonoBehaviour
 
     private void HandleSelectionInput()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        // [수정] 스페이스바 대신 마우스 왼쪽 클릭(0) 감지
+        // 마우스가 조이스틱 인식 영역 내에 있을 때만 동작하도록 제한
+        Rect scaledRect;
+        if (Input.GetMouseButtonDown(0) && IsMouseValid(out scaledRect))
         {
             if (currentGearSlot != 0)
             {

@@ -12,7 +12,7 @@ public class JsonManager : IJsonSerializer
         if (File.Exists(savePath))
         {
             string json = File.ReadAllText(savePath);
-            Debug.Log($"[JsonManager] 수정된 데이터를 불러옵니다: {savePath}");
+            Debug.Log($"[JsonManager] 수정된 세이브 데이터를 불러옵니다: {fileName} (경로: {savePath})");
             return JsonUtility.FromJson<T>(json);
         }
         else
@@ -23,11 +23,11 @@ public class JsonManager : IJsonSerializer
             
             if (textAsset == null)
             {
-                Debug.LogError($"[JsonManager] 원본 JSON 파일도 찾을 수 없습니다. 경로: Resources/Story_Json_Data/{fileName}");
+                Debug.LogError($"[JsonManager] 원본 JSON 파일도 찾을 수 없습니다. 파일명: {fileName}, 예상 경로: Resources/Story_Json_Data/{fileName}");
                 return default;
             }
 
-            Debug.Log("[JsonManager] 원본 데이터를 불러옵니다. (1회차)");
+            Debug.Log($"[JsonManager] 원본 리소스 데이터를 불러옵니다: {fileName}");
             return JsonUtility.FromJson<T>(textAsset.text);
         }
     }

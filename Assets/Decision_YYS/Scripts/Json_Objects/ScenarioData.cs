@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class ScenarioData
 {
     public List<Dialogue> MainStory;
-    public List<Dialogue> SideStory;
+    //public List<Dialogue> SideStory;
 }
 
 [Serializable]
@@ -15,10 +15,10 @@ public class Dialogue
     public string change;
     public string type;
     public bool isTransition;
-    public string background; // backgroundName -> background
+    public string background;
     public string character;
     public string text;
-    public string[] option; // options -> option
+    public string[] option;
     public string npcEmotion;
-    public int[] figure; // Figure -> figure
+    public int[] figure;
 }

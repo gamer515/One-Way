@@ -6,36 +6,29 @@ public class StoryRelayManager : MonoBehaviour
 {
     [SerializeField] private PromptData promptData;
 
-    public void RelayMidChapter(List<Dialogue> history, int[] stats, int chapter)
+    /// <summary>
+    /// 이야기 데이터를 필터링하고 요약하여 외부로 전송합니다.
+    /// </summary>
+    /// <param name="triggerType">"MidTransition" 또는 "ChapterEnd"</param>
+    public void Relay(string triggerType, List<Dialogue> history, int[] stats, int chapter)
     {
-        // 1. 'change'가 "true"인 지문만 필터링
+        // 1. 'change'가 "true"인 지문만 필터링 (핵심 지문만 압축)
         List<Dialogue> filtered = history.FindAll(d => d.change != null && d.change.ToLower() == "true");
         
         // 2. 텍스트 요약 생성
         string summary = BuildSummary(filtered);
         
-        // 3. 프롬프트 결합
-        string finalPrompt = string.Format(promptData.midTransitionTemplate, summary);
+        // 3. 트리거 타입에 따른 템플릿 선택 및 프롬프트 결합
+        string template = (triggerType == "MidTransition") 
+            ? promptData.midTransitionTemplate 
+            : promptData.chapterEndTemplate;
+            
+        string finalPrompt = string.Format(template, summary);
         
         // 4. 패킷 생성
-        StoryPacket packet = new StoryPacket("MidTransition", finalPrompt, filtered, stats, chapter);
+        StoryPacket packet = new StoryPacket(triggerType, finalPrompt, filtered, stats, chapter);
         
         // 5. 전송 시뮬레이션
-        SendPacket(packet);
-    }
-
-    public void RelayChapterEnd(List<Dialogue> history, int[] stats, int chapter)
-    {
-        // 1. 챕터 전체 지문 요약
-        string summary = BuildSummary(history);
-        
-        // 2. 프롬프트 결합
-        string finalPrompt = string.Format(promptData.chapterEndTemplate, summary);
-        
-        // 3. 패킷 생성 (전체 히스토리 포함)
-        StoryPacket packet = new StoryPacket("ChapterEnd", finalPrompt, history, stats, chapter);
-        
-        // 4. 전송 시뮬레이션
         SendPacket(packet);
     }
 

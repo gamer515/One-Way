@@ -12,14 +12,14 @@ public class SaveDataManager
         cachedProgress = saveSystem.Load<GameProgress>("Progress") ?? new GameProgress();
     }
 
-    public void SaveProgress(int chapter, int episode, int story)
+    public void SaveProgress(int chapterIndex, int episodeIndex, int storyIndex)
     {
-        cachedProgress.chapterIndex = chapter;
-        cachedProgress.episodeIndex = episode;
-        cachedProgress.storyIndex = story;
+        cachedProgress.chapterIndex = chapterIndex;
+        cachedProgress.episodeIndex = episodeIndex;
+        cachedProgress.storyIndex = storyIndex;
 
         saveSystem.Save("Progress", cachedProgress);
-        Debug.Log($"[Save] Progress Saved: Ch {chapter}, Ep {episode}, St {story}");
+        Debug.Log($"[Save] Progress Saved: Ch {chapterIndex}, Ep {episodeIndex}, St {storyIndex}");
     }
 
     public void SaveStats(int[] statsArray)

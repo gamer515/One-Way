@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class SaveManager : ISaveSystem
 {
+    // 저장 파일이 위치할 기본 경로
     private string BasePath => Path.Combine(Application.persistentDataPath, "Saves");
 
     public SaveManager() 
