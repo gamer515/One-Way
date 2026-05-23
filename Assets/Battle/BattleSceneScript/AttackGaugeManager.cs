@@ -8,6 +8,11 @@ public class AttackGaugeManager : MonoBehaviour
     public float moveSpeed = 10f;
     public float limitX = 600f;
 
+    [Header("Judgment Settings")]
+    public float perfectDistance = 5f;  // 기존 50f -> 20f (더 좁게!)
+    public float goodDistance = 5f;     // 기존 200f -> 80f (더 좁게!)
+
+
     private bool isMoving = false;
     private int direction = 1;
 
@@ -43,12 +48,12 @@ public class AttackGaugeManager : MonoBehaviour
         float distance = Mathf.Abs(striker.anchoredPosition.x - targetCenter.anchoredPosition.x);
         float damage = 0;
 
-        if (distance < 50f)
+        if (distance < perfectDistance)
         {
             Debug.Log("판정: Perfect! 1 데미지");
             damage = 1f;
         }
-        else if (distance < 200f)
+        else if (distance < goodDistance)
         {
             Debug.Log("판정: Good! 1 데미지");
             damage = 1f;

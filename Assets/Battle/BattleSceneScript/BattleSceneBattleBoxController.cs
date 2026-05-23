@@ -20,7 +20,7 @@ public partial class BattleSceneBattleBoxController : MonoBehaviour
     public GameObject dialogueContent; // 대화 텍스트가 담긴 UI 오브젝트
     private Coroutine resizeCoroutine;
     public TypewriterEffect typewriter; // 새로 추가: 인스펙터에서 연결해주세요!
-    public string textToSay = "* 당신은 죄악이 등을 타고\n  오르는 것을 느꼈다."; // 테스트용 텍스트
+    public string textToSay = "* ??????\n  ???????"; // 테스트용 텍스트
 
     // 대화창 모드로 전환하는 함수
     
@@ -106,7 +106,7 @@ public partial class BattleSceneBattleBoxController : MonoBehaviour
         return new Vector2(rightWall.localPosition.x * 2f, topWall.localPosition.y * 2f);
     }
 
-    public void ChangeBox(Vector2 targetSize, Vector2 targetPos, float duration)
+   /* public void ChangeBox(Vector2 targetSize, Vector2 targetPos, float duration)
     {
         if (resizeCoroutine != null) StopCoroutine(resizeCoroutine);
 
@@ -114,6 +114,17 @@ public partial class BattleSceneBattleBoxController : MonoBehaviour
         if (dialogueContent != null) dialogueContent.SetActive(false);
 
         resizeCoroutine = StartCoroutine(AnimateBox(targetSize, targetPos, duration));
+    }*/
+
+    public void ChangeBox(Vector2 targetSize, Vector2 targetCenter, float duration)
+    {
+        // 새로 추가: 상자 크기가 변하기 시작한다는 건 대화가 끝났다는 뜻이므로 글자를 날려버립니다.
+        if (typewriter != null)
+        {
+            typewriter.StopAndClear();
+        }
+
+        StartCoroutine(AnimateBox(targetSize, targetCenter, duration));
     }
 
     [Header("Gauge Configurations")]

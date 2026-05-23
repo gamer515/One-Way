@@ -92,4 +92,18 @@ public class TypewriterEffect : MonoBehaviour
             textComponent.text = "";
         }
     }
+
+    public void StopAndClear()
+    {
+        StopAllCoroutines();     // 돌아가던 타이핑(코루틴) 즉시 정지!
+
+        // IsTyping = false; (대문자 에러)
+        isTyping = false;        // 소문자로 수정
+
+        // if (textMeshPro != null) (없는 변수 에러)
+        if (textComponent != null) // textComponent로 수정
+        {
+            textComponent.text = ""; // 남아있는 글자도 깔끔하게 지우기
+        }
+    }
 }
