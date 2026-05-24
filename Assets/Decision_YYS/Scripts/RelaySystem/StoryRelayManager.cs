@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 using System.Text;
 
@@ -10,26 +10,50 @@ public class StoryRelayManager : MonoBehaviour
     /// 이야기 데이터를 필터링하고 요약하여 외부로 전송합니다.
     /// </summary>
     /// <param name="triggerType">"MidTransition" 또는 "ChapterEnd"</param>
-    public void Relay(string triggerType, List<Dialogue> history, int[] stats, int chapter)
+    public void Relay(string triggerType, string currentFileName, List<Dialogue> history, int[] stats, int chapter)
     {
         // 1. 'change'가 "true"인 지문만 필터링 (핵심 지문만 압축)
         List<Dialogue> filtered = history.FindAll(d => d.change != null && d.change.ToLower() == "true");
         
-        // 2. 텍스트 요약 생성
+        // 2. 텍스트 요약 생성 (ID 포함)
         string summary = BuildSummary(filtered);
+
+        // 3. 가장 높은 스탯 찾기 및 분위기 결정
+        int maxStat = GetMaxStat(stats);
+        string atmosphere = DetermineAtmosphere(maxStat);
         
-        // 3. 트리거 타입에 따른 템플릿 선택 및 프롬프트 결합
+        // 4. 트리거 타입에 따른 템플릿 선택 및 프롬프트 결합
         string template = (triggerType == "MidTransition") 
             ? promptData.midTransitionTemplate 
             : promptData.chapterEndTemplate;
             
-        string finalPrompt = string.Format(template, summary);
+        string finalPrompt = string.Format(template, summary, atmosphere, promptData.responseFormatTemplate);
         
-        // 4. 패킷 생성
-        StoryPacket packet = new StoryPacket(triggerType, finalPrompt, filtered, stats, chapter);
+        // 5. 패킷 생성 (파일명 포함)
+        StoryPacket packet = new StoryPacket(triggerType, currentFileName, finalPrompt, filtered, stats, chapter);
         
-        // 5. 전송 시뮬레이션
+        // 6. 전송 시뮬레이션
         SendPacket(packet);
+    }
+
+    private int GetMaxStat(int[] stats)
+    {
+        if (stats == null || stats.Length == 0) return 0;
+        int max = stats[0];
+        for (int i = 1; i < stats.Length; i++)
+        {
+            if (stats[i] > max) max = stats[i];
+        }
+        return max;
+    }
+
+    private string DetermineAtmosphere(int maxStat)
+    {
+        if (promptData == null) return "알 수 없는 분위기";
+
+        if (maxStat <= 4) return promptData.lowStatAtmosphere;
+        else if (maxStat == 5) return promptData.midStatAtmosphere;
+        else return promptData.highStatAtmosphere;
     }
 
     private string BuildSummary(List<Dialogue> dialogs)
@@ -39,18 +63,14 @@ public class StoryRelayManager : MonoBehaviour
         StringBuilder sb = new StringBuilder();
         foreach (var d in dialogs)
         {
-            sb.AppendLine($"- [{d.character}] {d.text}");
+            sb.AppendLine($"- [ID: {d.id}] [{d.character}] {d.text}");
         }
         return sb.ToString();
     }
 
     private void SendPacket(StoryPacket packet)
     {
-        Debug.Log($"<color=cyan>[StoryRelay]</color> External Packet Sent: {packet.triggerType}");
-        Debug.Log($"<color=white><b>Final Prompt:</b></color>\n{packet.finalPrompt}");
-        
-        // JSON으로 직렬화해서 출력 (외부 모듈이 받게 될 실제 데이터 형태 확인용)
-        string json = JsonUtility.ToJson(packet, true);
-        Debug.Log($"<color=grey><b>Raw JSON Payload:</b></color>\n{json}");
+        // 모든 데이터를 포함한 패킷을 AI 매니저에게 전달
+        AIManager.Instance.ProcessPacket(packet);
     }
 }

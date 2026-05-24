@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 using static Constants;
 using System.Collections;
@@ -34,6 +34,9 @@ public class DecisionManager : MonoBehaviour
     private int episodeIndex = 0;
     // 각 에피소드 내에서 지문 하나하나
     private int storyIndex = 0;
+
+    // [추가] 현재 로드된 시나리오 파일 경로 기록
+    private string currentScenarioPath;
     #endregion
 
     // [추가] 현재 챕터에서 플레이어가 읽은 모든 지문 기록을 클래스로 구분해야 함.
@@ -146,7 +149,7 @@ public class DecisionManager : MonoBehaviour
             // 2. 외부 데이터 전송 (이미 필터링된 핵심 데이터 전송)
             if (relayManager != null)
             {
-                relayManager.Relay("MidTransition", playedHistory, statContainer.stats, chapterIndex);
+                relayManager.Relay("MidTransition", currentScenarioPath, playedHistory, statContainer.stats, chapterIndex);
             }
 
             // 3. 다음 챕터로 인덱스 준비
@@ -221,7 +224,7 @@ public class DecisionManager : MonoBehaviour
         // [추가] 챕터 종료 데이터 전송 (전체 히스토리)
         if (relayManager != null)
         {
-            relayManager.Relay("ChapterEnd", playedHistory, statContainer.stats, chapterIndex);
+            relayManager.Relay("ChapterEnd", currentScenarioPath, playedHistory, statContainer.stats, chapterIndex);
         }
 
         // 2. 다음 챕터로 인덱스 변경
@@ -262,7 +265,21 @@ public class DecisionManager : MonoBehaviour
         string file = mainStory.Title[episodeIndex];
         string fullPath = $"{folder}/{file}";
 
-        scenarioData = jsonManager.LoadData<ScenarioData>(fullPath);
+        currentScenarioPath = fullPath; // 현재 파일 경로 저장
+
+        // [테스트 로직] AI가 수정한 NewStory 파일이 있는지 먼저 확인합니다.
+        string aiFileName = "NewStory_" + fullPath.Replace("/", "_");
+        scenarioData = jsonManager.LoadData<ScenarioData>(aiFileName);
+
+        // AI 수정본이 없다면 원본 데이터를 로드합니다.
+        if (scenarioData == null || scenarioData.MainStory == null || scenarioData.MainStory.Count == 0)
+        {
+            scenarioData = jsonManager.LoadData<ScenarioData>(fullPath);
+        }
+        else
+        {
+            Debug.Log($"<color=yellow><b>[AI 적용 완료]</b> 수정된 시나리오 데이터를 사용합니다: {aiFileName}</color>");
+        }
         
         if (scenarioData != null)
         {

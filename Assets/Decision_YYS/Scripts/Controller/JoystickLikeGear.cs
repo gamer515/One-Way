@@ -34,6 +34,7 @@ public class JoystickLikeGear : MonoBehaviour
     [SerializeField] private float smoothTime = 0.08f;     
 
     [SerializeField] DecisionManager decisionManager;
+    [SerializeField] private DynamicFaceController faceController;
 
     private Vector2 targetPosition;
     private Vector2 currentVelocity;
@@ -191,6 +192,14 @@ public class JoystickLikeGear : MonoBehaviour
             ref currentVelocity, 
             smoothTime
         );
+
+        // [추가] 얼굴 표정 컨트롤러에 현재 기어 위치 비율 전달
+        if (faceController != null)
+        {
+            float xRatio = joystick_Button.anchoredPosition.x / horizontalRange;
+            float yRatio = joystick_Button.anchoredPosition.y / verticalRange;
+            faceController.SetGearRatio(xRatio, yRatio);
+        }
     }
 
     private void Update3DGearRotation()
