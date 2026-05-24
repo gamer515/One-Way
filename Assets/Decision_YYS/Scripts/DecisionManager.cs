@@ -45,13 +45,18 @@ public class DecisionManager : MonoBehaviour
     #endregion
 
     // 과한 coupling을 줄여야 하는데, 일단은 편의상 DecisionManager에서 직접 참조하는 중.
-    // 추후에 필요하면 별도의 Manager 클래스로 분리해야 함.
+    [Header("View & Control Settings")]
     [SerializeField] private JoystickLikeGear gearController;
     [SerializeField] private StoryRelayManager relayManager;
+    [SerializeField] private GameObject playerViewUI; 
+    
+    private bool isPlayerViewActive = false;
+    public bool IsPlayerViewActive => isPlayerViewActive; // 조이스틱에서 참조하는 프로퍼티
 
     [Header("Player Movement")]
     [SerializeField] private GameObject playerPrefab;
     private Player playerInstance;
+    private Camera playerCamera; // 플레이어 객체에 붙은 카메라 저장용
     private float[] chapterStartZs = { 23f, 27f, 35f };
     private float[] chapterLengths = { 4f, 8f, 8f };
 
@@ -71,6 +76,14 @@ public class DecisionManager : MonoBehaviour
             GameObject go = Instantiate(playerPrefab);
             playerInstance = go.GetComponent<Player>();
             
+            // [추가] 플레이어 자식 객체에서 카메라를 찾아 저장합니다.
+            playerCamera = go.GetComponentInChildren<Camera>();
+            if (playerCamera != null)
+            {
+                // 초기에는 카메라 상태를 현재 모드에 맞춥니다.
+                playerCamera.enabled = isPlayerViewActive;
+            }
+
             // 현재 진행도에 맞는 위치 계산하여 그 자리에서 생성
             float currentZ = CalculateTargetZ();
             playerInstance.Initialize(new Vector3(-55f, 0.35f, currentZ));
@@ -365,9 +378,28 @@ public class DecisionManager : MonoBehaviour
         }
     }
 
+    public void TogglePlayerView()
+    {
+        isPlayerViewActive = !isPlayerViewActive;
+        
+        // 1. UI 활성화/비활성화
+        if (playerViewUI != null)
+        {
+            playerViewUI.SetActive(isPlayerViewActive);
+        }
+
+        // 2. 플레이어 객체에 붙은 카메라 켜기/끄기
+        if (playerCamera != null)
+        {
+            playerCamera.enabled = isPlayerViewActive;
+        }
+        
+        Debug.Log(isPlayerViewActive ? "플레이어 시점 ON" : "플레이어 시점 OFF");
+    }
 
     public void OnScreenClicked()
     {
+        if (isPlayerViewActive) return; // 플레이어 시점일 때는 클릭 무시
         if (currentState ==  GameState.Transitioning || scenarioData == null || scenarioData.MainStory == null) return;
         if (storyIndex < 0 || storyIndex >= scenarioData.MainStory.Count) return;
 
@@ -388,6 +420,7 @@ public class DecisionManager : MonoBehaviour
 
     public void ConfirmChoice(int gear)
     {
+        if (isPlayerViewActive) return; // 플레이어 시점일 때는 선택 무시
         if (currentState ==  GameState.ShowingStory)
         {
             OnScreenClicked();

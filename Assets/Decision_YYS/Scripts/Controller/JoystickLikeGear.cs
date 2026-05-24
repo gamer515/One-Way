@@ -232,7 +232,11 @@ public class JoystickLikeGear : MonoBehaviour
         if (gear != currentGearSlot)
         {
             currentGearSlot = gear;
-            decisionManager.ShowOptionText(gear);
+            // 플레이어 시점이 아닐 때만 텍스트를 업데이트합니다.
+            if (decisionManager != null && !decisionManager.IsPlayerViewActive)
+            {
+                decisionManager.ShowOptionText(gear);
+            }
         }
     }
 
