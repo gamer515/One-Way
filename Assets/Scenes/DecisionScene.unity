@@ -5435,7 +5435,7 @@ MonoBehaviour:
   option_Text: {fileID: 526528438}
   gearController: {fileID: 330002892}
   relayManager: {fileID: 996758929}
-  playerViewUI: {fileID: 4600626710744542330, guid: 7ffeb4ad3595eba429975258fb01db7f, type: 3}
+  playerViewUI: {fileID: 2099550373}
   playerPrefab: {fileID: 4600626710744542330, guid: 7ffeb4ad3595eba429975258fb01db7f, type: 3}
 --- !u!1 &1897318201
 GameObject:
