@@ -74,6 +74,7 @@ public class DecisionManager : MonoBehaviour
         if (playerInstance == null && playerPrefab != null)
         {
             GameObject go = Instantiate(playerPrefab);
+            go.SetActive(true); // [추가] 플레이어를 항상 활성화된 상태로 생성합니다.
             playerInstance = go.GetComponent<Player>();
             
             // [추가] 플레이어 자식 객체에서 카메라를 찾아 저장합니다.
@@ -192,6 +193,12 @@ public class DecisionManager : MonoBehaviour
 
         LoadGame();
         SpawnPlayer();
+
+        // [추가] 시작 시 플레이어 뷰 UI가 있다면 활성화합니다. (사용자 요청: 항상 활성화)
+        if (playerViewUI != null)
+        {
+            playerViewUI.SetActive(true);
+        }
     }
 
     private void LoadGame()
