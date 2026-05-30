@@ -64,7 +64,7 @@ public class AttackPatternManager : MonoBehaviour
         switch (patternID)
         {
             case 1: // 4방향 동시 발사 (새로운 중심점 기준)
-                Vector2 boxCenter1 = new Vector2(0f, -4f); // 현재 박스의 중심
+                Vector2 boxCenter1 = new Vector2(0f, -3f); // 현재 박스의 중심
                 boxController.ChangeBox(new Vector2(8f, 8f), boxCenter1, 0.5f);
                 player.SetMovementMode(PlayerController.MovementMode.Free);
                 yield return new WaitForSeconds(0.5f);
@@ -106,7 +106,7 @@ public class AttackPatternManager : MonoBehaviour
 
             case 2: // 왼쪽에서 오른쪽으로 오는 지그재그 웨이브 (중간 이빨 빠짐)
                 // 1. 상자 크기 조절 (높이 8 기준)
-                boxController.ChangeBox(new Vector2(8f, 8f), new Vector2(0f, -4f), 0.5f);
+                boxController.ChangeBox(new Vector2(8f, 8f), new Vector2(0f, -3f), 0.5f);
                 yield return new WaitForSeconds(0.5f);
 
                 int waveCount = 4; // 총 2번 왕복 (약 6초 소요)
@@ -116,8 +116,8 @@ public class AttackPatternManager : MonoBehaviour
                 // 2. 1번(Top)부터 6번(Bottom)까지의 Y좌표 6개 미리 계산
                 // 상자 중심이 (0, -4)이고 높이가 8이므로, 내부 Y좌표는 대략 -0.5 ~ -7.5
                 float[] yPos = new float[6];
-                float topY = -0.5f;
-                float botY = -7.5f;
+                float topY = 0.5f;
+                float botY = -6.5f;
                 for (int i = 0; i < 6; i++)
                 {
                     // i가 0이면 1번(Top), i가 5면 6번(Bottom)
@@ -160,7 +160,7 @@ public class AttackPatternManager : MonoBehaviour
                 // 시작 시 적 숨기기
                 if (enemyObject != null) enemyObject.SetActive(false);
 
-                boxController.ChangeBox(new Vector2(8f, 8f), new Vector2(0f, -4f), 0.5f);
+                boxController.ChangeBox(new Vector2(8f, 8f), new Vector2(0f, -3f), 0.5f);
                 yield return new WaitForSeconds(0.5f);
 
                 int rowCount = 12; // 총 12번(줄) 쏘기
@@ -211,7 +211,7 @@ public class AttackPatternManager : MonoBehaviour
 
             case 4: // 가로로 긴 상자 & 부드러운 일직선 이동 & 8개 묶음 가시
                 // 1. 상자 크기 조절 시작
-                    boxController.ChangeBox(new Vector2(16f, 4f), new Vector2(0, -4f), 0.5f);
+                    boxController.ChangeBox(new Vector2(16f, 4f), new Vector2(0, -3f), 0.5f);
                     yield return new WaitForSeconds(0.5f); // 상자가 다 변할 때까지 대기
 
                     // 2. 플레이어 강제 이동 시작 (조작 잠금)
@@ -280,7 +280,7 @@ public class AttackPatternManager : MonoBehaviour
                     if (enemyObject != null) enemyObject.SetActive(false);
 
                     // 1. [수정] 상자 크기 조절 (너비 8, 높이 10, 중심 0, -2)
-                    boxController.ChangeBox(new Vector2(9f, 12f), new Vector2(0f, -2f), 0.5f);
+                    boxController.ChangeBox(new Vector2(9f, 12f), new Vector2(0f, -1f), 0.5f);
                     yield return new WaitForSeconds(0.5f);
 
                     // 2. 플레이어를 위쪽 허공으로 순간 이동 (자유 조작 및 무중력)
@@ -370,7 +370,7 @@ public class AttackPatternManager : MonoBehaviour
             case 6: // 중력 조작 (연속 벽쾅 패턴)
                 {
                     // 1. 상자 크기 조절 (너비 10, 높이 8)
-                    boxController.ChangeBox(new Vector2(10f, 8f), new Vector2(0f, -4f), 0.5f);
+                    boxController.ChangeBox(new Vector2(10f, 8f), new Vector2(0f, -3f), 0.5f);
                     yield return new WaitForSeconds(0.5f);
 
                     //[요청 반영] 패턴 시작 시 자유 조작 및 무중력(Free) 모드로 변환
@@ -483,7 +483,7 @@ public class AttackPatternManager : MonoBehaviour
                 }
 
             case 7: // 반시계 레이저 (새로운 중심점 조준)
-                Vector2 boxCenter2 = new Vector2(0f, -4f);
+                Vector2 boxCenter2 = new Vector2(0f, -3f);
                 boxController.ChangeBox(new Vector2(8f, 8f), boxCenter2, 0.5f);
                 player.SetMovementMode(PlayerController.MovementMode.Free);
                 yield return new WaitForSeconds(0.5f);
@@ -506,7 +506,7 @@ public class AttackPatternManager : MonoBehaviour
                 yield return new WaitForSeconds(3f);
                 break;
             case 8: // 양방향 동시 레이저 (새로운 중심점 기준)
-                Vector2 boxCenter3 = new Vector2(0f, -4f);
+                Vector2 boxCenter3 = new Vector2(0f, -3f);
                 boxController.ChangeBox(new Vector2(8f, 8f), boxCenter3, 0.5f);
                 player.SetMovementMode(PlayerController.MovementMode.Free);
                 yield return new WaitForSeconds(0.5f);
@@ -523,7 +523,7 @@ public class AttackPatternManager : MonoBehaviour
             case 9: // 가로 레이저(BulletB) 4연사 패턴 (자유 모드)
                 {
                     // 1. 상자 크기 조절 (기본 크기: 너비 8, 높이 8)
-                    boxController.ChangeBox(new Vector2(8f, 8f), new Vector2(0f, -4f), 0.5f);
+                    boxController.ChangeBox(new Vector2(8f, 8f), new Vector2(0f, -3f), 0.5f);
                     yield return new WaitForSeconds(0.5f);
 
                     // 2. 플레이어를 자유 조작(Free) 및 무중력 상태로 변환

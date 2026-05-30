@@ -1,5 +1,9 @@
 ﻿using UnityEngine;
+using UnityEngine.Networking;
+using System;
 using System.Text;
+using System.Collections;
+using System.Collections.Generic;
 
 public class AIManager : MonoBehaviour
 {
@@ -10,7 +14,7 @@ public class AIManager : MonoBehaviour
         {
             if (_instance == null)
             {
-                _instance = Object.FindFirstObjectByType<AIManager>();
+                _instance = FindFirstObjectByType<AIManager>();
                 if (_instance == null)
                 {
                     GameObject go = new GameObject("AIManager");
@@ -22,96 +26,128 @@ public class AIManager : MonoBehaviour
         }
     }
 
+    [Header("Gemini API Settings")]
+    [SerializeField] private string apiKey = "YOUR_API_KEY";
+    private string apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=";
+
+    // 문제 1(Race Condition) 방어용 플래그
+    public bool isAiProcessing { get; private set; } = false;
+
+    #region JSON Serialization Classes for Gemini API
+    [Serializable] private class GeminiRequest { public List<Content> contents; public GenConfig generationConfig; }
+    [Serializable] private class Content { public List<Part> parts; }
+    [Serializable] private class Part { public string text; }
+    [Serializable] private class GenConfig { public string response_mime_type; }
+
+    [Serializable] private class GeminiResponse { public List<Candidate> candidates; }
+    [Serializable] private class Candidate { public Content content; }
+
+    // AI가 반환할 수정된 텍스트 구조체
+    [Serializable] public class AIModifiedData { public int id; public string text; }
+    #endregion
+
     private void Awake()
     {
-        if (_instance == null)
-        {
-            _instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else if (_instance != this)
-        {
-            Destroy(gameObject);
-        }
+        if (_instance == null) { _instance = this; DontDestroyOnLoad(gameObject); }
+        else if (_instance != this) { Destroy(gameObject); }
     }
 
-    /// <summary>
-    /// 전달받은 패킷의 모든 내용을 색상별로 구분하여 출력합니다.
-    /// </summary>
     public void ProcessPacket(StoryPacket packet)
     {
-        StringBuilder sb = new StringBuilder();
-        
-        // 1. 헤더 및 트리거 정보 (연녹색)
-        sb.AppendLine($"<color=#42f590><b>[AI SYSTEM - NEW PACKET RECEIVED]</b></color>");
-        sb.AppendLine($"<b>Trigger Type:</b> {packet.triggerType}");
-        sb.AppendLine($"<b>Target File:</b> {packet.fileName}");
-        sb.AppendLine($"<b>Target Chapter Index:</b> {packet.chapterIndex}");
-        
-        // 2. 현재 스탯 상태 (연두색 계열)
-        sb.AppendLine($"\n<color=#a2f542><b>[STATS STATUS]</b></color>");
-        if (packet.stats != null && packet.stats.Length >= 4)
-        {
-            sb.AppendLine($"무력: {packet.stats[0]} | 지력: {packet.stats[1]} | 매력: {packet.stats[2]} | 명성: {packet.stats[3]}");
-        }
-
-        // 3. 필터링된 히스토리 요약 (오렌지색)
-        sb.AppendLine($"\n<color=#f5a442><b>[STORY HISTORY]</b></color>");
-        if (packet.storyHistory != null && packet.storyHistory.Count > 0)
-        {
-            foreach (var d in packet.storyHistory)
-            {
-                sb.AppendLine($"- <color=white>[{d.character}]</color> {d.text}");
-            }
-        }
-        else
-        {
-            sb.AppendLine("<i>(No significant changes recorded)</i>");
-        }
-
-        // 4. 최종 프롬프트 내용 (노란색)
-        sb.AppendLine($"\n<color=#f5e642><b>[FINAL PROMPT]</b></color>");
-        sb.AppendLine(packet.finalPrompt);
-
-        // 5. 원본 JSON 데이터 (회색)
-        sb.AppendLine($"\n<color=grey><b>[RAW JSON]</b> {JsonUtility.ToJson(packet)}</color>");
-
-        // [임시 시뮬레이션] AI가 수정을 완료했다고 가정하고 NewStory 파일을 생성합니다.
-        SimulateAIAndSave(packet);
-
-        // 최종 통합 로그 출력
-        Debug.Log(sb.ToString());
+        Debug.Log("<color=#42f590><b>[AI SYSTEM - STARTING API CALL]</b></color>");
+        // 백그라운드 코루틴 시작 (메인 스레드를 멈추지 않고 씬 전환 가능)
+        StartCoroutine(CommunicateWithGeminiRoutine(packet));
     }
 
-    private void SimulateAIAndSave(StoryPacket packet)
+    private IEnumerator CommunicateWithGeminiRoutine(StoryPacket packet)
+    {
+        isAiProcessing = true; // 처리 시작 상태 플래그 ON
+
+        // 1. 요청 페이로드 세팅 (JSON 형태로 응답을 강제함)
+        GeminiRequest requestData = new GeminiRequest
+        {
+            contents = new List<Content> { new Content { parts = new List<Part> { new Part { text = packet.finalPrompt } } } },
+            generationConfig = new GenConfig { response_mime_type = "application/json" }
+        };
+
+        string jsonPayload = JsonUtility.ToJson(requestData);
+
+        using (UnityWebRequest request = new UnityWebRequest(apiUrl + apiKey, "POST"))
+        {
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonPayload);
+            request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+
+            // API 호출 후 응답 대기 (TempAttackScene에서 플레이하는 동안 알아서 진행됨)
+            yield return request.SendWebRequest();
+
+            // 2. 에러 처리 (문제 2 해결: 네트워크 에러 시 Fallback)
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[AI SYSTEM] API 통신 실패: {request.error}\n원본 스토리를 유지합니다.");
+                isAiProcessing = false;
+                yield break;
+            }
+
+            // 3. 성공 시 데이터 파싱 및 저장
+            try
+            {
+                GeminiResponse responseData = JsonUtility.FromJson<GeminiResponse>(request.downloadHandler.text);
+                string generatedJson = responseData.candidates[0].content.parts[0].text;
+
+                // 프롬프트에서 [ { } ] 형태의 배열로 응답하도록 지시했으므로 래퍼(wrapper)를 씌워 파싱
+                string wrappedJson = $"{{\"items\": {generatedJson}}}";
+                AIModifiedData[] modifiedItems = JsonHelper.FromJson<AIModifiedData>(wrappedJson);
+
+                ApplyAndSave(packet, modifiedItems);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[AI SYSTEM] JSON 파싱 에러: {e.Message}\n원본 스토리를 유지합니다.");
+            }
+        }
+
+        isAiProcessing = false; // 처리 완료 상태 플래그 OFF
+    }
+
+    private void ApplyAndSave(StoryPacket packet, AIModifiedData[] modifiedItems)
     {
         if (string.IsNullOrEmpty(packet.fileName)) return;
 
         JsonManager jsonManager = new JsonManager();
-        // 1. 원본 데이터 로드
         ScenarioData originalData = jsonManager.LoadData<ScenarioData>(packet.fileName);
-        
         if (originalData == null || originalData.MainStory == null) return;
 
-        // 2. 패킷에 포함된 히스토리(수정 대상)들의 텍스트를 "AI가 수정한 것 처럼" 변경
-        foreach (var historyItem in packet.storyHistory)
+        // 원본 데이터에 AI 수정 텍스트 덮어쓰기
+        foreach (var item in modifiedItems)
         {
-            // 원본 데이터에서 해당 ID를 가진 지문을 찾아 수정
-            var targetDialogue = originalData.MainStory.Find(d => d.id == historyItem.id);
+            var targetDialogue = originalData.MainStory.Find(d => d.id == item.id);
             if (targetDialogue != null)
             {
-                // 간단한 시뮬레이션: { }로 감싸진 부분을 찾아 [AI수정됨]을 덧붙입니다.
-                // 실제 AI는 프롬프트에 따라 문장 전체를 자연스럽게 바꾸겠지만, 테스트를 위해 표식을 남깁니다.
-                targetDialogue.text = targetDialogue.text.Replace("{", "{[AI수정됨] ");
-                Debug.Log($"[AI Simulation] ID {targetDialogue.id} 지문을 가상으로 수정했습니다.");
+                targetDialogue.text = item.text;
+                Debug.Log($"<color=cyan>[AI System] ID {targetDialogue.id} 스토리 교체 완료</color>");
             }
         }
 
-        // 3. "NewStory_" 접두사를 붙여서 persistentDataPath에 저장
-        // 예: MartialArts/MartialArts_01 -> NewStory_MartialArts_01
         string saveFileName = "NewStory_" + packet.fileName.Replace("/", "_");
         jsonManager.SaveData(originalData, saveFileName);
-        
-        Debug.Log($"<color=cyan><b>[AI Simulation]</b> 임시 수정본이 저장되었습니다: {saveFileName}</color>");
+        Debug.Log($"<color=#f5e642><b>[AI SYSTEM] 최종 스토리 저장 완료: {saveFileName}</b></color>");
+    }
+}
+
+// 최상위 JSON 배열 파싱을 위한 헬퍼 클래스 (JsonUtility의 한계 극복용)
+public static class JsonHelper
+{
+    public static T[] FromJson<T>(string json)
+    {
+        Wrapper<T> wrapper = JsonUtility.FromJson<Wrapper<T>>(json);
+        return wrapper.items;
+    }
+
+    [Serializable]
+    private class Wrapper<T>
+    {
+        public T[] items;
     }
 }

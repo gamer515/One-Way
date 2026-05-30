@@ -180,25 +180,30 @@ public class DecisionManager : MonoBehaviour
 
             // 6. 전투 씬으로 전환
             currentState = GameState.Transitioning;
-            UnityEngine.SceneManagement.SceneManager.LoadScene("TempAttackScene");
+            UnityEngine.SceneManagement.SceneManager.LoadScene("BattleScene");
         }
     }
 
-    private void Start()
+    // 기존 Start() 대신 코루틴 사용
+    private IEnumerator Start()
     {
-        // 싱글톤으로 할 지, 말 지는 추후에 결정. 일단은 편의상 DecisionManager에서 직접 참조하는 중.
         jsonManager = new JsonManager();
-        // 이 부분은 추후에 n 회차일 경우 Omnibus_02, Omnibus_03 등으로 변경할 지 말지는 선택.
         currentOmnibus = jsonManager.LoadData<OmnibusData>("Omnibus_01");
+
+        // 문제 1 해결: AI가 아직 스토리를 만들고 있다면 대기
+        if (AIManager.Instance != null && AIManager.Instance.isAiProcessing)
+        {
+            Debug.Log("[DecisionManager] AI 스토리를 기다리는 중...");
+            // TODO: 여기에 "스토리 생성 중..." 같은 로딩 UI나 패널을 켜는 코드를 추가하면 더 좋아.
+
+            yield return new WaitUntil(() => !AIManager.Instance.isAiProcessing);
+
+            // TODO: 로딩 UI 비활성화
+        }
 
         LoadGame();
         SpawnPlayer();
-
-        // [추가] 시작 시 플레이어 뷰 UI가 있다면 활성화합니다. (사용자 요청: 항상 활성화)
-        if (playerViewUI != null)
-        {
-            playerViewUI.SetActive(true);
-        }
+        if (playerViewUI != null) playerViewUI.SetActive(true);
     }
 
     private void LoadGame()

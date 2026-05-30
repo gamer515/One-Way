@@ -140,7 +140,7 @@ public class BattleStateMachine : MonoBehaviour
         BattleIndex++;
 
         // 이야기 씬(팀원의 DecisionScene)으로 전환합니다.
-        SceneManager.LoadScene("TempDecisionScene");
+        SceneManager.LoadScene("DecisionScene");
     }
 
     public void OnPlayerAttackComplete(float damage)
