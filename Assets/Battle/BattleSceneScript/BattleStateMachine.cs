@@ -136,8 +136,17 @@ public class BattleStateMachine : MonoBehaviour
         Debug.Log("전투 승리! 1.5초 후 이야기 씬으로 돌아갑니다.");
         yield return new WaitForSeconds(1.5f);
 
-        // 다음 번에 전투에 진입할 때는 B2, B3가 되도록 인덱스를 1 증가시키고 저장합니다.
-        BattleIndex++;
+        // 인덱스를 1 증가시킵니다.
+        int nextIndex = BattleIndex + 1;
+
+        // 만약 다음 인덱스가 3보다 크면(즉, 4가 되면) 다시 1로 되돌립니다.
+        if (nextIndex > 3)
+        {
+            nextIndex = 1;
+        }
+
+        // 순환 처리된 값을 BattleIndex에 저장합니다.
+        BattleIndex = nextIndex;
 
         // 이야기 씬(팀원의 DecisionScene)으로 전환합니다.
         SceneManager.LoadScene("DecisionScene");

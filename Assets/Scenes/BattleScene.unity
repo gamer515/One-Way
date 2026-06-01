@@ -470,10 +470,10 @@ MonoBehaviour:
   - introText: "(\uBC14 \uB78C \uC774 \uBD84 \uB2E4)"
     midText: "\uB204\uAD70\uAC00\uAC00 \uCCD0\uB2E4\uBCF4\uACE0 \uC788\uB2E4"
     endText: "\uB3CC\uC544\uAC00\uB77C"
-  - introText: "(\uB2E4\uC2DC \uBC14 \uB78C \uC774 \uBD84 \uB2E4)"
+  - introText: "(\uBC14 \uB78C \uC774 \uBD84 \uB2E4)"
     midText: "\uB204\uAD70\uAC00\uAC00 \uCCD0\uB2E4\uBCF4\uACE0 \uC788\uB2E4"
     endText: "\uB3CC\uC544\uAC00\uB77C"
-  - introText: "\uC775\uC219\uD558\uB2E4"
+  - introText: "(\uBC14 \uB78C \uC774 \uBD84 \uB2E4)"
     midText: "\uB204\uAD70\uAC00\uAC00 \uCCD0\uB2E4\uBCF4\uACE0 \uC788\uB2E4"
     endText: "\uB3CC\uC544\uAC00\uB77C"
   enemyHp: 1
@@ -1126,7 +1126,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec685d6746dc69d498daf24a6e7719e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  maxHp: 10
+  maxHp: 20
   currentHp: 0
   moveSpeed: 9
   jumpForce: 12
@@ -3325,8 +3325,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: New Text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: d1d218f269815cf4395e0e47a28645c9, type: 2}
-  m_sharedMaterial: {fileID: -7043953668802177736, guid: d1d218f269815cf4395e0e47a28645c9, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
